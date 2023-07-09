@@ -8,25 +8,39 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define BUFF_SIZE 256
+#include <common.h>
+
 #define CONNECTIONS 1
 
 int main(void) {
-    char servMsg[BUFF_SIZE] = "Server reached!";
+    
+    SADDR_IN serverAddr;
+    SADDR_IN clientAddr;
+    int serverSock;
+    int clientSock;
+    socklen_t serverAddrLen = sizeof(serverAddr);
+    socklen_t clientAddrLen = sizeof(clientAddr);
 
-    int serverSock = socket(AF_INET, SOCK_STREAM, 0);
-
-    struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(9002);
+    serverAddr.sin_port = htons(IN_PORT);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
-    bind(serverSock, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
+    char servMsg[BUFF_SIZE] = "Server reached!";
+
+    serverSock = socket(AF_INET, SOCK_STREAM, 0);
+    bind(serverSock, (SADDR*) &serverAddr, serverAddrLen);
     listen(serverSock, CONNECTIONS);
+    clientSock = accept(serverSock, (SADDR*) &clientAddr, &clientAddrLen);
 
-    int clientSock = accept(serverSock, NULL, NULL);
+    char clientIP[INET_ADDRSTRLEN];
+    inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN);
+    printf("Client connected to server from [%s]\n", clientIP);
 
-    send(clientSock, servMsg, sizeof(servMsg), 0);
+    while(1) {
+        send(clientSock, servMsg, sizeof(servMsg), 0);
+        printf("Message received from [%s]\n", clientIP);
+        sleep(1);
+    }
     close(serverSock);
     return 0;
 }
