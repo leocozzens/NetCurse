@@ -1,5 +1,4 @@
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
 
 #include <stdio.h>
@@ -12,6 +11,7 @@
 
 int main(void) {
 
+    char outBuff[BUFF_SIZE];
     SADDR_IN serverAddr;
     int netSock;
     socklen_t serverAddrLen = sizeof(serverAddr);
@@ -28,10 +28,11 @@ int main(void) {
     }
 
     while(1) {
-        char recvBuff[BUFF_SIZE];
-        recv(netSock, recvBuff, sizeof(recvBuff), 0);
+        printf("Enter the vaue you'd like to send to the server: ");
+        scanf("%255s", outBuff);
+        send(netSock, outBuff, sizeof(outBuff), 0);
 
-        printf("Data received:\n%s\n", recvBuff);
+        printf("Data sent:\n%s\n", outBuff);
     }
     close(netSock);
     return 0;

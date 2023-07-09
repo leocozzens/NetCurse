@@ -1,5 +1,5 @@
+#include <pthread.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
 
 #include <stdio.h>
@@ -25,7 +25,7 @@ int main(void) {
     serverAddr.sin_port = htons(IN_PORT);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
-    char servMsg[BUFF_SIZE] = "Server reached!";
+    char recvBuff[BUFF_SIZE];
 
     serverSock = socket(AF_INET, SOCK_STREAM, 0);
     bind(serverSock, (SADDR*) &serverAddr, serverAddrLen);
@@ -37,9 +37,8 @@ int main(void) {
     printf("Client connected to server from [%s]\n", clientIP);
 
     while(1) {
-        send(clientSock, servMsg, sizeof(servMsg), 0);
-        printf("Message received from [%s]\n", clientIP);
-        sleep(1);
+        recv(clientSock, recvBuff, sizeof(recvBuff), 0);
+        printf("Message received from [%s]\nMSG: %s\n", clientIP, recvBuff);
     }
     close(serverSock);
     return 0;

@@ -7,4 +7,8 @@
 #define SADDR struct sockaddr
 #define SADDR_IN struct sockaddr_in
 
+// typedef struct {
+
+// } Queue;
+
 #endif
