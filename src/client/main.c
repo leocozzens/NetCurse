@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <common.h>
+#include <model.h>
 #include <input.h>
 
 int main(void) {
@@ -18,9 +19,7 @@ int main(void) {
 
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(IN_PORT);
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-
-    char outBuff[BUFF_SIZE];
+    serverAddr.sin_addr.s_addr = inet_addr("192.168.1.11");
 
     netSock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -29,12 +28,13 @@ int main(void) {
         exit(-1);
     }
 
+    UserData outData;
     while(1) {
         printf("Enter the vaue you'd like to send to the server: ");
-        get_input(outBuff, BUFF_SIZE);
-        send(netSock, outBuff, sizeof(outBuff), 0);
+        get_input(outData.msg, BUFF_SIZE);
+        send(netSock, &outData, sizeof(outData), 0);
 
-        printf("Data sent:\n%s\n", outBuff);
+        printf("Data sent:\n%s\n", outData.msg);
     }
     close(netSock);
     return 0;
