@@ -21,16 +21,16 @@ release: CFLAGS = -Iinclude -O2
 release: new
 
 $(BIN).client.bin: $(CLIENT_OBJS)
-	$(CC) $(CFLAGS) $(CLIENT_OBJS) -o $@
+	$(CC) $(CFLAGS) -Isrc/client/include $(CLIENT_OBJS) -o $@
 
 $(BIN).server.bin: $(SERVER_OBJS)
-	$(CC) $(CFLAGS) $(SERVER_OBJS) -o $@
+	$(CC) $(CFLAGS) -Isrc/server/include $(SERVER_OBJS) -o $@
 
 $(OBJ)/client/%.o: $(SRC)/client/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -Isrc/client/include -c $< -o $@
 
 $(OBJ)/server/%.o: $(SRC)/server/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -Isrc/server/include -c $< -o $@
 
 #%.o: $(SRC)/%.c
 #	$(CC) $(CFLAGS) -c $< -o $(OBJ)/$@	

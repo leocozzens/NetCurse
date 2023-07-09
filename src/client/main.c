@@ -8,10 +8,10 @@
 #include <errno.h>
 
 #include <common.h>
+#include <input.h>
 
 int main(void) {
 
-    char outBuff[BUFF_SIZE];
     SADDR_IN serverAddr;
     int netSock;
     socklen_t serverAddrLen = sizeof(serverAddr);
@@ -19,7 +19,9 @@ int main(void) {
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(IN_PORT);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
-    
+
+    char outBuff[BUFF_SIZE];
+
     netSock = socket(AF_INET, SOCK_STREAM, 0);
 
     if(connect(netSock, (struct sockaddr*) &serverAddr, serverAddrLen) == -1) {
@@ -29,7 +31,7 @@ int main(void) {
 
     while(1) {
         printf("Enter the vaue you'd like to send to the server: ");
-        scanf("%255s", outBuff);
+        get_input(outBuff, BUFF_SIZE);
         send(netSock, outBuff, sizeof(outBuff), 0);
 
         printf("Data sent:\n%s\n", outBuff);

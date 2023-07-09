@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdlib.h>
+
 #define BUFF_SIZE 256
 #define IN_PORT 9002
 
