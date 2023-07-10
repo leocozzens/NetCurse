@@ -1,6 +1,8 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include <stdio.h>
+
 #include <common.h>
 
 typedef struct {
@@ -8,7 +10,7 @@ typedef struct {
 } UserData;
 
 typedef struct Action {
-    UserData userPacket;
+    UserData *userPacket;
     struct Action *nextAction;
 } Action;
 
@@ -18,5 +20,7 @@ typedef struct {
 } ActionQueue;
 
 void init_queue(ActionQueue *userActions);
+void enqueue(ActionQueue *userActions, UserData *data);
+void print_queue(ActionQueue *userActions);
 
 #endif

@@ -62,8 +62,8 @@ void* listen_for(void *arg) {
 void *receive_data(void *arg) {
     DataCapsule *data = arg;
     while(1) {
-        UserData userBuffer;
-        size_t retVal = recv(data->clientData->clientSock, &userBuffer, sizeof(UserData), 0);
+        UserData *userBuffer = malloc(sizeof(UserData));
+        size_t retVal = recv(data->clientData->clientSock, userBuffer, sizeof(UserData), 0);
         if(retVal == -1) {
             perror("SOCKET ERROR");
             CLOSE_RECEIVER(data->clientData->clientIP, inet_addr(data->serverData->hostIP));
@@ -73,6 +73,7 @@ void *receive_data(void *arg) {
             CLOSE_RECEIVER(data->clientData->clientIP, inet_addr(data->serverData->hostIP));
             return NULL;
         }
-        printf("Message received from [%s]\nMSG: %s\n", data->clientData->clientIP, userBuffer.msg);
+        printf("Message received from [%s]\nMSG: %s\n", data->clientData->clientIP, userBuffer->msg);
+        enqueue(data->userActions, userBuffer);
     }
 }
