@@ -1,12 +1,13 @@
 // Local headers
 #include <tasks.h>
 
-#define WORKER_COUNT 30
+// #define WORKER_COUNT 30
 
 int main(int argc, char **argv) {
-    SockData serverData;
+    HANDLE_SIGINT;
+    SockData serverSock;
     ActionQueue userActions;
-    ServerState state = { &serverData, &userActions };
+    ServerState state = { &serverSock, &userActions };
 
     if(argc < 2) strcpy(state.serverSock->IPStr, "0.0.0.0");
     else strncpy(state.serverSock->IPStr, argv[1], INET_ADDRSTRLEN - 1);
@@ -21,6 +22,17 @@ int main(int argc, char **argv) {
     //     pthread_create(&workerPool[i], NULL, workerFunc, NULL);
     // }
 
+    while(1) {
+        Action *inData;
+        if(dequeue(&userActions, &inData)) {
+            printf("Message received from [%s]\nMSG: %s\n", inData->actionAddr, inData->userPacket.msg);
+            free(inData);
+        }
+        if(check_SIGINT()) {
+            CLOSE_NOW(serverSock.socket);
+        }
+    }
+
     pthread_join(connectionIntake, NULL);
-    return 0;
+    CLOSE_NOW(serverSock.socket);
 }

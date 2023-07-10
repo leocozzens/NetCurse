@@ -8,6 +8,7 @@ CLIENT_SRCS = $(wildcard $(SRC)/client/*.c)
 CLIENT_OBJS = $(patsubst $(SRC)/client/%.c, $(OBJ)/client/%.o, $(CLIENT_SRCS))
 SERVER_SRCS = $(wildcard $(SRC)/server/*.c)
 SERVER_OBJS = $(patsubst $(SRC)/server/%.c, $(OBJ)/server/%.o, $(SERVER_SRCS))
+SHARED = $(wildcard $(SRC)/*.c)
 BIN = $(BINDIR)/$(PROJNAME)
 
 SUBMITNAME = $(PROJNAME).zip
@@ -21,22 +22,16 @@ release: CFLAGS = -Iinclude -O2
 release: new
 
 $(BIN).client.bin: $(CLIENT_OBJS)
-	$(CC) $(CFLAGS) -Isrc/client/include $(CLIENT_OBJS) -o $@
+	$(CC) $(CFLAGS) -Isrc/client/include $(CLIENT_OBJS) $(SHARED) -o $@
 
 $(BIN).server.bin: $(SERVER_OBJS)
-	$(CC) $(CFLAGS) -Isrc/server/include $(SERVER_OBJS) -o $@
+	$(CC) $(CFLAGS) -Isrc/server/include $(SERVER_OBJS) $(SHARED) -o $@
 
 $(OBJ)/client/%.o: $(SRC)/client/%.c
 	$(CC) $(CFLAGS) -Isrc/client/include -c $< -o $@
 
 $(OBJ)/server/%.o: $(SRC)/server/%.c
 	$(CC) $(CFLAGS) -Isrc/server/include -c $< -o $@
-
-#%.o: $(SRC)/%.c
-#	$(CC) $(CFLAGS) -c $< -o $(OBJ)/$@	
-
-#link: $(OBJS)
-#	$(CC) $(CFLAGS) $(OBJS) -o $(BIN)
 
 clean:
 	rm -r $(BINDIR) $(OBJ)
