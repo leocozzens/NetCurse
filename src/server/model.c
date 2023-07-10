@@ -3,6 +3,8 @@
 void init_queue(ActionQueue *userActions) {
     userActions->head = NULL;
     userActions->tail = NULL;
+    userActions->tailLock = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(userActions->tailLock, NULL);
 }
 
 void enqueue(ActionQueue *userActions, Action *newAction) {
@@ -34,4 +36,17 @@ _Bool dequeue(ActionQueue *userActions, Action **retAction) {
     userActions->head = userActions->head->nextAction;
     if(userActions->head == NULL) userActions->tail = NULL;
     return 1;
+}
+
+void queue_cleanup(ActionQueue *userActions) {
+    Action *currAction = userActions->head;
+    Action *nextAction;
+    while(currAction != NULL) {
+        nextAction = currAction->nextAction;
+        free(currAction);
+        currAction = nextAction;
+    }
+    free(currAction);
+    pthread_mutex_destroy(userActions->tailLock);
+    free(userActions->tailLock);
 }

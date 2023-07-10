@@ -1,6 +1,6 @@
 #include <tasks.h>
 
-#define CONNECTIONS 5
+#define CONNECTIONS 50
 
 #define CLOSE_RECEIVER(_IP) printf("Closed connection to [%s]\n", (_IP)); \
                             close(inet_addr(_IP))
@@ -23,6 +23,7 @@ void *connection_loop(void *arg) {
     UTIL_CHECK(state->serverSock->socket, -1, "SOCKET socket");
 
     UTIL_CHECK(bind(state->serverSock->socket, (SADDR*) &serverAddr, serverAddrLen), -1, "SOCKET bind");
+    UTIL_CHECK(listen(state->serverSock->socket, CONNECTIONS), -1, "SOCKET listen");
 
     printf("Waiting for connections...\n\n");
     while(1) listen_for(state);
@@ -39,7 +40,6 @@ void listen_for(ServerState *state) {
     SADDR_IN clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);
 
-    UTIL_CHECK(listen(state->serverSock->socket, CONNECTIONS), -1, "SOCKET listen");
     capsule->clientSock->socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
     UTIL_CHECK(capsule->clientSock->socket, -1, "SOCKET accept");
 
@@ -83,7 +83,9 @@ void *receive_data(void *arg) {
 
                 memcpy(&actionBuffer->userPacket, buffer + (i * dataSize), dataSize);
                 strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
+                pthread_mutex_lock(capsule->state->userActions->tailLock);
                 enqueue(capsule->state->userActions, actionBuffer);
+                pthread_mutex_unlock(capsule->state->userActions->tailLock);
             }
 
             if(remnantBytes != 0) {

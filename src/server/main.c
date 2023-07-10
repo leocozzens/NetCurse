@@ -24,12 +24,13 @@ int main(int argc, char **argv) {
 
     while(1) {
         Action *inData;
-        if(dequeue(&userActions, &inData)) {
+        if(dequeue(state.userActions, &inData)) {
             printf("Message received from [%s]\nMSG: %s\n", inData->actionAddr, inData->userPacket.msg);
             free(inData);
         }
         if(check_SIGINT()) {
-            CLOSE_NOW(serverSock.socket);
+            queue_cleanup(state.userActions);
+            CLOSE_NOW(state.serverSock->socket);
         }
     }
 
