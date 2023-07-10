@@ -16,30 +16,23 @@
 #include <model.h>
 
 typedef struct {
-    int clientSock;
-    char clientIP[INET_ADDRSTRLEN];
-} ClientSockData; // TODO: Merge these
+    int socket;
+    char IPStr[INET_ADDRSTRLEN];
+} SockData;
 
 typedef struct {
-    int serverSock;
-    char hostIP[INET_ADDRSTRLEN];
-} ServerSockData;
-
-typedef struct {
-    ClientSockData *clientData;
-    ServerSockData *serverData;
-    pthread_t *recvThread;
+    SockData *serverSock;
     ActionQueue *userActions;
-} DataCapsule;
+} ServerState;
 
 typedef struct {
-    ActionQueue userActions;
-    const char *hostIP;
-} InitialInput;
+    SockData *clientSock;
+    ServerState *state;
+} DataCapsule;
 
 void *workerFunc(void*);
 void *connection_loop(void *arg);
-void* listen_for(void *arg);
+void* listen_for(ServerState *state);
 void *receive_data(void *arg);
 
 #endif

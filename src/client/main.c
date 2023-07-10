@@ -22,7 +22,6 @@ int main(void) {
     serverAddr.sin_addr.s_addr = inet_addr("192.168.1.11");
 
     netSock = socket(AF_INET, SOCK_STREAM, 0);
-
     if(connect(netSock, (struct sockaddr*) &serverAddr, serverAddrLen) == -1) {
         perror("SOCKET ERROR");
         exit(-1);
