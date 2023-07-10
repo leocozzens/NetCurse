@@ -20,7 +20,7 @@ int main(void) {
     serverAddr.sin_port = htons(IN_PORT);
     serverAddr.sin_addr.s_addr = inet_addr("192.168.1.11");
 
-    clientSock = socket(AF_INET, SOCK_STREAM, 0);
+    clientSock = socket(AF_INET, SOCK_STREAM, 0); // TODO: Add IPv6 support
     UTIL_CHECK(clientSock, -1, "SOCKET socket");
     UTIL_CHECK(connect(clientSock, (struct sockaddr*) &serverAddr, serverAddrLen), -1, "SOCKET connect");
 
@@ -36,5 +36,5 @@ int main(void) {
 
         printf("Data sent:\n%s\n", outData.msg);
     }
-    CLOSE_NOW(clientSock);
+    CLOSE_NOW(clientSock); // TODO: Send message that indicates socket closure
 }

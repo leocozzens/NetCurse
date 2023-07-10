@@ -15,6 +15,8 @@
 #include <common.h>
 #include <model.h>
 
+#define MSG_BATCH_SIZE 10
+
 typedef struct {
     int socket;
     char IPStr[INET_ADDRSTRLEN];

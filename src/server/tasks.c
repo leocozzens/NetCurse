@@ -53,10 +53,10 @@ void listen_for(ServerState *state) {
 
 void *receive_data(void *arg) {
     DataCapsule *capsule = arg;
+    size_t dataSize = sizeof(UserData);
+    char buffer[dataSize * MSG_BATCH_SIZE];
     while(1) {
-        Action *actionBuffer = malloc(sizeof(Action));
-        MEM_ERROR(actionBuffer, ALLOC_ERR);
-        size_t retVal = recv(capsule->clientSock->socket, &actionBuffer->userPacket, sizeof(UserData), 0);
+        ssize_t retVal = recv(capsule->clientSock->socket, buffer, dataSize, 0); // TODO: Add close condition if wait time is surpassed
         if(retVal == -1) {
             perror("SOCKET recv");
             CLOSE_RECEIVER(capsule->clientSock->IPStr);
@@ -68,7 +68,29 @@ void *receive_data(void *arg) {
             FREE_CAPSULE(capsule);
             return NULL;
         }
-        strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
-        enqueue(capsule->state->userActions, actionBuffer);
+        else if(retVal < dataSize) {
+            CLOSE_RECEIVER(capsule->clientSock->IPStr);
+            FREE_CAPSULE(capsule);
+            return NULL;
+        }
+        else {
+            size_t msgCount = retVal / dataSize;
+            size_t remnantBytes = retVal % dataSize;
+
+            for(size_t i = 0; i < msgCount; i++) {
+                Action *actionBuffer = malloc(sizeof(Action));
+                MEM_ERROR(actionBuffer, ALLOC_ERR);
+
+                memcpy(&actionBuffer->userPacket, buffer + (i * dataSize), dataSize);
+                strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
+                enqueue(capsule->state->userActions, actionBuffer);
+            }
+
+            if(remnantBytes != 0) {
+                CLOSE_RECEIVER(capsule->clientSock->IPStr);
+                FREE_CAPSULE(capsule);
+                return NULL;
+            }
+        }
     }
 }
