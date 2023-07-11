@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
         if(check_SIGINT()) {
             queue_cleanup(state.userActions);
             CLOSE_NOW(state.serverSock->socket);
+            exit(0);
         }
     }
 

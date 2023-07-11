@@ -3,7 +3,9 @@
 
 // POSIX headers
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 // C standard libraries
 #include <stdio.h>
@@ -25,12 +27,25 @@
 #define UTIL_CHECK(_Util, _ErrVal, _Warning) ((_Util) == (_ErrVal)) ? \
                                              perror((_Warning)), exit(_ErrVal) : 0
 #define CLOSE_NOW(_Sock) printf("\nSIGINT detected: Exiting gracefully\n"); \
-                         close((_Sock)); \
-                         exit(0)
+                         close((_Sock));
 
 #define HANDLE_SIGINT signal(SIGINT, graceful_close);
 
+#define DEFAULT_WAIT_TIME 5
+#define DEFAULT_WAIT_TIME_U 0
+
+#define FRAME_SIZE 4
+#define HEARTBEAT_HEADER "HEART"
+#define HEARTBEAT_FOOTER "BEAT"
+#define BEAT_SIZE 1
+#define CNN_ALIVE '\n'
+#define CNN_DEAD '\0'
+
+#define USERDATA_HEADER "USER"
+#define USERDATA_FOOTER "ENDU"
+
 void graceful_close(int signum);
 _Bool check_SIGINT(void);
+void set_sock_timeout(int socket, int waitTime, int uwaitTime);
 
 #endif

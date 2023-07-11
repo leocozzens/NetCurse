@@ -42,6 +42,7 @@ void listen_for(ServerState *state) {
 
     capsule->clientSock->socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
     UTIL_CHECK(capsule->clientSock->socket, -1, "SOCKET accept");
+    set_sock_timeout(capsule->clientSock->socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
 
     inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock->IPStr, INET_ADDRSTRLEN);
     printf("Client connected to server from [%s]\n", capsule->clientSock->IPStr);
@@ -56,7 +57,7 @@ void *receive_data(void *arg) {
     size_t dataSize = sizeof(UserData);
     char buffer[dataSize * MSG_BATCH_SIZE];
     while(1) {
-        ssize_t retVal = recv(capsule->clientSock->socket, buffer, dataSize, 0); // TODO: Add close condition if wait time is surpassed
+        ssize_t retVal = recv(capsule->clientSock->socket, buffer, sizeof(buffer), 0); // TODO: Add close condition if wait time is surpassed
         if(retVal == -1) {
             perror("SOCKET recv");
             CLOSE_RECEIVER(capsule->clientSock->IPStr);
@@ -68,27 +69,43 @@ void *receive_data(void *arg) {
             FREE_CAPSULE(capsule);
             return NULL;
         }
-        else if(retVal < dataSize) {
-            CLOSE_RECEIVER(capsule->clientSock->IPStr);
-            FREE_CAPSULE(capsule);
-            return NULL;
-        }
         else {
-            size_t msgCount = retVal / dataSize;
-            size_t remnantBytes = retVal % dataSize;
+            size_t remainingBytes = retVal;
+            _Bool terminate = 0;
 
-            for(size_t i = 0; i < msgCount; i++) {
-                Action *actionBuffer = malloc(sizeof(Action));
-                MEM_ERROR(actionBuffer, ALLOC_ERR);
+            while(remainingBytes > (FRAME_SIZE * 2)) {
+                size_t headerPos = retVal - remainingBytes;
 
-                memcpy(&actionBuffer->userPacket, buffer + (i * dataSize), dataSize);
-                strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
-                pthread_mutex_lock(capsule->state->userActions->tailLock);
-                enqueue(capsule->state->userActions, actionBuffer);
-                pthread_mutex_unlock(capsule->state->userActions->tailLock);
+                if((strncmp(buffer + headerPos, USERDATA_HEADER, FRAME_SIZE) == 0)) {
+                    remainingBytes -= FRAME_SIZE;
+                    if(remainingBytes < (FRAME_SIZE + dataSize)) break;
+                    if(strncmp(buffer + (headerPos + (FRAME_SIZE + dataSize)), USERDATA_FOOTER, FRAME_SIZE) != 0) break;
+
+                    remainingBytes -= FRAME_SIZE + dataSize;
+                    Action *actionBuffer = malloc(sizeof(Action));
+                    MEM_ERROR(actionBuffer, ALLOC_ERR);
+
+                    memcpy(&actionBuffer->userPacket, buffer + (headerPos + FRAME_SIZE), dataSize);
+                    strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
+                    pthread_mutex_lock(capsule->state->userActions->tailLock);
+                    enqueue(capsule->state->userActions, actionBuffer);
+                    pthread_mutex_unlock(capsule->state->userActions->tailLock);
+                }
+                else if(strncmp(buffer + headerPos, HEARTBEAT_HEADER, FRAME_SIZE) == 0) {
+                    remainingBytes -= FRAME_SIZE;
+                    if(remainingBytes < (FRAME_SIZE + BEAT_SIZE)) break;
+                    if(strncmp(buffer + (headerPos + (FRAME_SIZE + BEAT_SIZE)), HEARTBEAT_FOOTER, FRAME_SIZE) != 0) break;
+
+                    if(*(buffer + (headerPos + FRAME_SIZE)) == CNN_ALIVE) remainingBytes -= FRAME_SIZE + BEAT_SIZE;
+                    else if(*(buffer + (headerPos + FRAME_SIZE)) == CNN_DEAD) {
+                        terminate = 1;
+                        break;
+                    }
+                    else break;
+                }
             }
 
-            if(remnantBytes != 0) {
+            if(terminate) {
                 CLOSE_RECEIVER(capsule->clientSock->IPStr);
                 FREE_CAPSULE(capsule);
                 return NULL;
