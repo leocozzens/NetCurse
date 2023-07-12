@@ -1,5 +1,5 @@
-#ifndef MODEL_H
-#define MODEL_H
+#ifndef MODEL_STRUCTS_H
+#define MODEL_STRUCTS_H
 
 // POSIX headers
 #include <pthread.h>
@@ -24,11 +24,5 @@ typedef struct {
     Action *tail;
     pthread_mutex_t *tailLock;
 } ActionQueue;
-
-void init_queue(ActionQueue *userActions);
-void enqueue(ActionQueue *userActions, Action *newAction);
-void print_queue(ActionQueue *userActions);
-_Bool dequeue(ActionQueue *userActions, Action **retData);
-void queue_cleanup(ActionQueue *userActions);
 
 #endif

@@ -16,8 +16,10 @@ zip = zip
 
 all: create_dirs
 all: $(BIN).client.bin
-#	ant -f java_client/build.xml 
 all: $(BIN).server.bin
+
++: all
++: jclient
 
 release: CFLAGS = -Iinclude -O2
 release: new
@@ -33,6 +35,9 @@ $(OBJ)/client/%.o: $(SRC)/client/%.c
 
 $(OBJ)/server/%.o: $(SRC)/server/%.c
 	$(CC) $(CFLAGS) -Isrc/server/include -c $< -o $@
+
+jclient:
+	ant -f java_client/build.xml
 
 clean:
 	rm -r $(BINDIR) $(OBJ)

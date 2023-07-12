@@ -1,6 +1,3 @@
-// POSIX headers
-#include <pthread.h>
-
 // C standard libraries
 #include <unistd.h>
 #include <errno.h>
