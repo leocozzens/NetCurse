@@ -15,26 +15,25 @@ int main(int argc, char **argv) {
     init_queue(state.userActions);
 
     pthread_t connectionIntake;
-    pthread_create(&connectionIntake, NULL, connection_loop, (void*) &state);
+    pthread_create(&connectionIntake, NULL, connection_loop, &state);
 
     // pthread_t workerPool[WORKER_COUNT];
     // for(int i = 0; i < WORKER_COUNT; i ++) {
     //     pthread_create(&workerPool[i], NULL, workerFunc, NULL);
     // }
 
+    pthread_t queueLoop;
+    pthread_create(&queueLoop, NULL, process_queue, &state);
+
     while(1) {
-        Action *inData;
-        if(dequeue(state.userActions, &inData)) {
-            printf("Message received from [%s]\nMSG: %s\n", inData->actionAddr, inData->userPacket.msg);
-            free(inData);
-        }
         if(check_SIGINT()) {
-            queue_cleanup(state.userActions);
             CLOSE_NOW(state.serverSock->socket);
             exit(0);
         }
+        usleep(100000);
     }
 
     pthread_join(connectionIntake, NULL);
+    pthread_join(queueLoop, NULL);
     CLOSE_NOW(serverSock.socket);
 }

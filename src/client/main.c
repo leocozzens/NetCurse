@@ -3,29 +3,22 @@
 #include <errno.h>
 
 // Local headers
-#include <common.h>
 #include <input.h>
 #include <ctasks.h>
+#include <utils.h>
 
-int main(void) {
+int main(int argc, char **argv) {
     HANDLE_SIGINT;
     ConnData connInfo;
-    SADDR_IN serverAddr;
-    socklen_t serverAddrLen = sizeof(serverAddr);
+    char serverIP[INET_ADDRSTRLEN];
 
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(IN_PORT);
-    serverAddr.sin_addr.s_addr = inet_addr("192.168.1.11");
+    if(argc < 2) strcpy(serverIP, "0.0.0.0");
+    else strncpy(serverIP, argv[1], INET_ADDRSTRLEN - 1);
 
-    connInfo.clientSock = socket(AF_INET, SOCK_STREAM, 0); // TODO: Add IPv6 support
-    UTIL_CHECK(connInfo.clientSock, -1, "SOCKET socket");
-    UTIL_CHECK(connect(connInfo.clientSock, (SADDR*) &serverAddr, serverAddrLen), -1, "SOCKET connect");
-    set_sock_timeout(connInfo.clientSock, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
-    connInfo.connectionState = CNN_ALIVE;
+    connect_to_server(serverIP, &connInfo);
 
-    char outFrame[sizeof(UserData) + (FRAME_SIZE * 2)];
-    strncpy(outFrame, USERDATA_HEADER, FRAME_SIZE);
-    strncpy(outFrame + (FRAME_SIZE + sizeof(UserData)), USERDATA_FOOTER, FRAME_SIZE);
+    size_t packetSize;
+    char *outFrame = make_packet(USERDATA_SIZE, FRAME_SIZE, USERDATA_HEADER, USERDATA_FOOTER, &packetSize);
     UserData *outData = (UserData*) (outFrame + FRAME_SIZE);
 
     pthread_t heartBeat;
@@ -33,11 +26,11 @@ int main(void) {
     pthread_create(&heartBeat, NULL, beat_loop, &connInfo);
     pthread_detach(heartBeat);
     while(1) {
-        printf("Enter the value you'd like to send to the server: ");
+        printf("-> ");
         get_input(outData->msg, BUFF_SIZE);
 
         pthread_mutex_lock(&connInfo.sendLock); // TODO: Check conenction state before sending message, and attempt to restablish
-        send(connInfo.clientSock, outFrame, sizeof(outFrame), 0);
+        send(connInfo.clientSock, outFrame, packetSize, 0);
         pthread_mutex_unlock(&connInfo.sendLock);
         printf("Data sent:\n%s\n", outData->msg);
     }

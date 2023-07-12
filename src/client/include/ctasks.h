@@ -5,15 +5,11 @@
 #include <unistd.h>
 
 // Local headers
+#include <structs.h>
 #include <shared_model.h>
-
-typedef struct {
-    int clientSock;
-    char connectionState;
-    pthread_mutex_t sendLock;
-} ConnData;
 
 void *beat_loop(void *arg);
 void send_heartbeat(char *buffer, int buffSize, ConnData *connInfo);
+char *make_packet(size_t dataSize, size_t frameSize, const char *header, const char *footer, size_t *packetSize);
 
 #endif

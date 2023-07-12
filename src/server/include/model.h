@@ -14,13 +14,13 @@ typedef struct Action {
 typedef struct {
     Action *head;
     Action *tail;
-    pthread_mutex_t *tailLock;
+    pthread_mutex_t *queueLock;
+    pthread_cond_t *queueReady;
 } ActionQueue;
 
 void init_queue(ActionQueue *userActions);
 void enqueue(ActionQueue *userActions, Action *newAction);
 void print_queue(ActionQueue *userActions);
-_Bool dequeue(ActionQueue *userActions, Action **retData);
-void queue_cleanup(ActionQueue *userActions);
+void dequeue(ActionQueue *userActions, Action **retAction);
 
 #endif
