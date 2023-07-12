@@ -1,29 +1,8 @@
-#include <tasks.h>
+// Local headers
+#include <task_helpers.h>
 
 #define CHECK_FRAME(_FrameState, _SuccessCode) if((_FrameState) == (VERIFIED)) return _SuccessCode; \
                                                else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE
-
-void listen_for(ServerState *state) {
-    DataCapsule *capsule = malloc(sizeof(DataCapsule));
-    MEM_ERROR(capsule, ALLOC_ERR);
-    capsule->clientSock = malloc(sizeof(SockData));
-    MEM_ERROR(capsule->clientSock, ALLOC_ERR);
-    capsule->state = state;
-
-    SADDR_IN clientAddr;
-    socklen_t clientAddrLen = sizeof(clientAddr);
-
-    capsule->clientSock->socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
-    UTIL_CHECK(capsule->clientSock->socket, -1, "SOCKET accept");
-    set_sock_timeout(capsule->clientSock->socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
-
-    inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock->IPStr, INET_ADDRSTRLEN);
-    printf("Client connected to server from [%s]\n", capsule->clientSock->IPStr);
-
-    pthread_t recvThread;
-    pthread_create(&recvThread, NULL, receive_data, capsule);
-    pthread_detach(recvThread);
-}
 
 void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, _Bool *terminate) {
     size_t remainingBytes = retVal;

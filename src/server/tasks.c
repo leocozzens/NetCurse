@@ -1,3 +1,4 @@
+// Local headers
 #include <tasks.h>
 
 #define CONNECTIONS 50
@@ -29,6 +30,29 @@ void *connection_loop(void *arg) {
     printf("Waiting for connections...\n\n");
     while(1) listen_for(state);
     exit(0);
+}
+
+
+void listen_for(ServerState *state) {
+    DataCapsule *capsule = malloc(sizeof(DataCapsule));
+    MEM_ERROR(capsule, ALLOC_ERR);
+    capsule->clientSock = malloc(sizeof(SockData));
+    MEM_ERROR(capsule->clientSock, ALLOC_ERR);
+    capsule->state = state;
+
+    SADDR_IN clientAddr;
+    socklen_t clientAddrLen = sizeof(clientAddr);
+
+    capsule->clientSock->socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
+    UTIL_CHECK(capsule->clientSock->socket, -1, "SOCKET accept");
+    set_sock_timeout(capsule->clientSock->socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
+
+    inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock->IPStr, INET_ADDRSTRLEN);
+    printf("Client connected to server from [%s]\n", capsule->clientSock->IPStr);
+
+    pthread_t recvThread;
+    pthread_create(&recvThread, NULL, receive_data, capsule);
+    pthread_detach(recvThread);
 }
 
 void *receive_data(void *arg) {

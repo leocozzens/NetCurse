@@ -3,6 +3,7 @@
 #include <errno.h>
 
 // Local headers
+#include <common.h>
 #include <input.h>
 #include <ctasks.h>
 

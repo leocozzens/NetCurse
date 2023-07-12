@@ -32,7 +32,6 @@ typedef struct {
     ServerState *state;
 } DataCapsule;
 
-void listen_for(ServerState *state);
 void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, _Bool *terminate);
 MessageType detect_msg_type(size_t *remainingBytes, const char *recvBuffer, DataCapsule *capsule);
 FrameCode verify_frame(const char *recvBuffer, size_t *remainingBytes, size_t frameWidth, size_t dataSize, const char *header, const char *footer);

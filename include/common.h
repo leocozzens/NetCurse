@@ -13,7 +13,6 @@
 #include <string.h>
 #include <signal.h>
 
-#define BUFF_SIZE 256
 #define IN_PORT 9002
 
 #define SADDR struct sockaddr

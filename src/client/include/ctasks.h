@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 // Local headers
-#include <model_structs.h>
+#include <shared_model.h>
 
 typedef struct {
     int clientSock;
