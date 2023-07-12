@@ -15,7 +15,7 @@ typedef enum {
     WRONG_HEADER,
     BAD_FORMAT,
     VERIFIED
-} MessageCode;
+} FrameCode;
 
 typedef struct {
     int socket;

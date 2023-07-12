@@ -38,7 +38,10 @@ void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, 
             case ENDMSG_CODE:
                 goto ENDLOOP;
             case HEARTBEAT_CODE:
-                if(recvBuffer[headerPos + FRAME_SIZE] != CNN_ALIVE) *terminate = 1;
+                if(recvBuffer[headerPos + FRAME_SIZE] != CNN_ALIVE) {
+                    *terminate = 1;
+                    goto ENDLOOP;
+                }
                 break;
             case USERDATA_CODE:
                 if(make_action((recvBuffer + headerPos), FRAME_SIZE, USERDATA_SIZE, capsule)) {
@@ -52,7 +55,7 @@ void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, 
 }
 
 MessageType detect_msg_type(size_t *remainingBytes, const char *recvBuffer, DataCapsule *capsule) {
-    MessageCode frameState;
+    FrameCode frameState;
 
     frameState = verify_frame(recvBuffer, remainingBytes, FRAME_SIZE, BEAT_SIZE, HEARTBEAT_HEADER, HEARTBEAT_FOOTER);
     CHECK_FRAME(frameState, HEARTBEAT_CODE);
@@ -62,7 +65,7 @@ MessageType detect_msg_type(size_t *remainingBytes, const char *recvBuffer, Data
     return ENDMSG_CODE;
 }
 
-MessageCode verify_frame(const char *recvBuffer, size_t *remainingBytes, size_t frameWidth, size_t dataSize, const char *header, const char *footer) {
+FrameCode verify_frame(const char *recvBuffer, size_t *remainingBytes, size_t frameWidth, size_t dataSize, const char *header, const char *footer) {
     if((strncmp(recvBuffer, header, frameWidth) == 0)) {
         *remainingBytes -= frameWidth;
         if(*remainingBytes < (frameWidth + dataSize)) return BAD_FORMAT;
