@@ -33,6 +33,7 @@ void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, 
         switch(detect_msg_type(&remainingBytes, (recvBuffer + headerPos), capsule)) {
             case TERMINATE_CODE:
                 *terminate = 1;
+                goto ENDLOOP;
                 break;
             case ENDMSG_CODE:
                 goto ENDLOOP;
