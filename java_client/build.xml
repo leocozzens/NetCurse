@@ -1,0 +1,42 @@
+<project name="TextLinkClient" default="jar" basedir=".">
+
+    <target name="default" depends="jar"/>
+    <target name="new" depends="clean,jar"/>
+
+    <property name="project.name" value="TextLinkClient"/>
+    <property name="mainclass.name" value="Main"/>
+
+    <property name="src.dir" value="src/main/java"/>
+    <property name="build.dir" value="build"/>
+    <property name="lib.dir" value="lib"/>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.dir}/classes"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <javac srcdir="${src.dir}" destdir="${build.dir}/classes" includeantruntime="false">
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="jar" depends="compile">
+        <jar destfile="${build.dir}/${project.name}.jar" basedir="${build.dir}/classes">
+           <zipgroupfileset dir="lib" includes="*.jar"/>
+            <manifest>
+                 <attribute name="DependencyFinder" value="main"/>
+                <attribute name="Main-Class" value="${mainclass.name}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+
+</project>

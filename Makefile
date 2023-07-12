@@ -16,6 +16,7 @@ zip = zip
 
 all: create_dirs
 all: $(BIN).client.bin
+#	ant -f java_client/build.xml 
 all: $(BIN).server.bin
 
 release: CFLAGS = -Iinclude -O2
