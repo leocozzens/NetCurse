@@ -7,6 +7,8 @@
 // Local headers
 #include <common.h>
 
+#define USERDATA_SIZE sizeof(UserData)
+
 typedef struct {
     char msg[BUFF_SIZE];
 } UserData;

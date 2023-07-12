@@ -35,11 +35,12 @@
 #define DEFAULT_WAIT_TIME_U 0
 
 #define FRAME_SIZE 4
+
 #define HEARTBEAT_HEADER "HEART"
 #define HEARTBEAT_FOOTER "BEAT"
-#define BEAT_SIZE 1
 #define CNN_ALIVE '\n'
 #define CNN_DEAD '\0'
+#define BEAT_SIZE 1
 
 #define USERDATA_HEADER "USER"
 #define USERDATA_FOOTER "ENDU"

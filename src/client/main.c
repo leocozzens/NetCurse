@@ -21,7 +21,7 @@ int main(void) {
 
     connInfo.clientSock = socket(AF_INET, SOCK_STREAM, 0); // TODO: Add IPv6 support
     UTIL_CHECK(connInfo.clientSock, -1, "SOCKET socket");
-    UTIL_CHECK(connect(connInfo.clientSock, (struct sockaddr*) &serverAddr, serverAddrLen), -1, "SOCKET connect");
+    UTIL_CHECK(connect(connInfo.clientSock, (SADDR*) &serverAddr, serverAddrLen), -1, "SOCKET connect");
     set_sock_timeout(connInfo.clientSock, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
     connInfo.connectionState = CNN_ALIVE;
 

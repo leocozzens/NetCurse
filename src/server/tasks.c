@@ -1,11 +1,14 @@
 #include <tasks.h>
 
 #define CONNECTIONS 50
+#define MSG_BATCH_SIZE 10
 
 #define CLOSE_RECEIVER(_IP) printf("Closed connection to [%s]\n", (_IP)); \
                             close(inet_addr(_IP))
 #define FREE_CAPSULE(_Capsule) free(capsule->clientSock); \
                                free(capsule)
+#define CHECK_FRAME(_FrameState, _SuccessCode) if((_FrameState) == (VERIFIED)) return _SuccessCode; \
+                                               else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE
 
 // void *workerFunc(void *);
 
@@ -54,62 +57,81 @@ void listen_for(ServerState *state) {
 
 void *receive_data(void *arg) {
     DataCapsule *capsule = arg;
-    size_t dataSize = sizeof(UserData);
-    char buffer[dataSize * MSG_BATCH_SIZE];
+    char recvBuffer[USERDATA_SIZE * MSG_BATCH_SIZE];
     while(1) {
-        ssize_t retVal = recv(capsule->clientSock->socket, buffer, sizeof(buffer), 0); // TODO: Add close condition if wait time is surpassed
+        ssize_t retVal = recv(capsule->clientSock->socket, recvBuffer, sizeof(recvBuffer), 0);
+        _Bool terminate = 0;
+
         if(retVal == -1) {
             perror("SOCKET recv");
+            terminate = 1;
+        }
+        else if(retVal == 0) terminate = 1;
+        else interpret_msg(retVal, recvBuffer, capsule, &terminate);
+
+        if(terminate) {
             CLOSE_RECEIVER(capsule->clientSock->IPStr);
             FREE_CAPSULE(capsule);
             return NULL;
-        }
-        else if(retVal == 0) {
-            CLOSE_RECEIVER(capsule->clientSock->IPStr);
-            FREE_CAPSULE(capsule);
-            return NULL;
-        }
-        else {
-            size_t remainingBytes = retVal;
-            _Bool terminate = 0;
-
-            while(remainingBytes > (FRAME_SIZE * 2)) {
-                size_t headerPos = retVal - remainingBytes;
-
-                if((strncmp(buffer + headerPos, USERDATA_HEADER, FRAME_SIZE) == 0)) {
-                    remainingBytes -= FRAME_SIZE;
-                    if(remainingBytes < (FRAME_SIZE + dataSize)) break;
-                    if(strncmp(buffer + (headerPos + (FRAME_SIZE + dataSize)), USERDATA_FOOTER, FRAME_SIZE) != 0) break;
-
-                    remainingBytes -= FRAME_SIZE + dataSize;
-                    Action *actionBuffer = malloc(sizeof(Action));
-                    MEM_ERROR(actionBuffer, ALLOC_ERR);
-
-                    memcpy(&actionBuffer->userPacket, buffer + (headerPos + FRAME_SIZE), dataSize);
-                    strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
-                    pthread_mutex_lock(capsule->state->userActions->tailLock);
-                    enqueue(capsule->state->userActions, actionBuffer);
-                    pthread_mutex_unlock(capsule->state->userActions->tailLock);
-                }
-                else if(strncmp(buffer + headerPos, HEARTBEAT_HEADER, FRAME_SIZE) == 0) {
-                    remainingBytes -= FRAME_SIZE;
-                    if(remainingBytes < (FRAME_SIZE + BEAT_SIZE)) break;
-                    if(strncmp(buffer + (headerPos + (FRAME_SIZE + BEAT_SIZE)), HEARTBEAT_FOOTER, FRAME_SIZE) != 0) break;
-
-                    if(*(buffer + (headerPos + FRAME_SIZE)) == CNN_ALIVE) remainingBytes -= FRAME_SIZE + BEAT_SIZE;
-                    else if(*(buffer + (headerPos + FRAME_SIZE)) == CNN_DEAD) {
-                        terminate = 1;
-                        break;
-                    }
-                    else break;
-                }
-            }
-
-            if(terminate) {
-                CLOSE_RECEIVER(capsule->clientSock->IPStr);
-                FREE_CAPSULE(capsule);
-                return NULL;
-            }
         }
     }
+}
+
+void interpret_msg(size_t retVal, const char *recvBuffer, DataCapsule *capsule, _Bool *terminate) {
+    size_t remainingBytes = retVal;
+
+    while(remainingBytes > (FRAME_SIZE * 2)) {
+        size_t headerPos = retVal - remainingBytes;
+        switch(detect_msg_type(&remainingBytes, (recvBuffer + headerPos), capsule)) {
+            case TERMINATE_CODE:
+                *terminate = 1;
+                break;
+            case ENDMSG_CODE:
+                goto ENDLOOP;
+            case HEARTBEAT_CODE:
+                if(recvBuffer[headerPos + FRAME_SIZE] != CNN_ALIVE) *terminate = 1;
+                break;
+            case USERDATA_CODE:
+                if(make_action((recvBuffer + headerPos), FRAME_SIZE, USERDATA_SIZE, capsule)) {
+                    *terminate = 1;
+                    goto ENDLOOP;
+                }
+                break;
+        }
+    }
+    ENDLOOP:
+}
+
+MessageType detect_msg_type(size_t *remainingBytes, const char *recvBuffer, DataCapsule *capsule) {
+    MessageCode frameState;
+
+    frameState = verify_frame(recvBuffer, remainingBytes, FRAME_SIZE, BEAT_SIZE, HEARTBEAT_HEADER, HEARTBEAT_FOOTER);
+    CHECK_FRAME(frameState, HEARTBEAT_CODE);
+
+    frameState = verify_frame(recvBuffer, remainingBytes, FRAME_SIZE, USERDATA_SIZE, USERDATA_HEADER, USERDATA_FOOTER);
+    CHECK_FRAME(frameState, USERDATA_CODE);
+    return ENDMSG_CODE;
+}
+
+MessageCode verify_frame(const char *recvBuffer, size_t *remainingBytes, size_t frameWidth, size_t dataSize, const char *header, const char *footer) {
+    if((strncmp(recvBuffer, header, frameWidth) == 0)) {
+        *remainingBytes -= frameWidth;
+        if(*remainingBytes < (frameWidth + dataSize)) return BAD_FORMAT;
+        if(strncmp(recvBuffer + frameWidth + dataSize, footer, frameWidth) != 0) return BAD_FORMAT;
+        *remainingBytes -= frameWidth + dataSize;
+        return VERIFIED;
+    }
+    return WRONG_HEADER;
+}
+
+_Bool make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule) {
+    Action *actionBuffer = malloc(sizeof(Action));
+    if(actionBuffer == NULL) return 1;
+
+    memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
+    strcpy(actionBuffer->actionAddr, capsule->clientSock->IPStr);
+    pthread_mutex_lock(capsule->state->userActions->tailLock);
+    enqueue(capsule->state->userActions, actionBuffer);
+    pthread_mutex_unlock(capsule->state->userActions->tailLock);
+    return 0;
 }
