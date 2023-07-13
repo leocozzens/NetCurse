@@ -3,15 +3,15 @@
 
 void *beat_loop(void *arg) {
     ConnData *connInfo = arg;
-    char buffer[BEAT_SIZE + (FRAME_SIZE * 2)];
-    strncpy(buffer, HEARTBEAT_HEADER, FRAME_SIZE);
-    strncpy(buffer + (FRAME_SIZE + BEAT_SIZE), HEARTBEAT_FOOTER, FRAME_SIZE);
+    size_t packetSize;
+    char *buffer = make_packet(BEAT_SIZE, FRAME_SIZE, HEARTBEAT_HEADER, HEARTBEAT_FOOTER, &packetSize);
+
     while(!check_SIGINT()) {
-        send_heartbeat(buffer, sizeof(buffer), connInfo);
-        usleep(100000);
+        send_heartbeat(buffer, packetSize, connInfo);
+        usleep(HEARTBEAT_INTERVAL);
     }
     connInfo->connectionState = CNN_DEAD;
-    send_heartbeat(buffer, sizeof(buffer), connInfo);
+    send_heartbeat(buffer, packetSize, connInfo);
 
     pthread_mutex_lock(&connInfo->sendLock);
     CLOSE_NOW(connInfo->clientSock);
@@ -27,7 +27,7 @@ char *make_packet(size_t dataSize, size_t frameSize, const char *header, const c
     return outFrame;
 }
 
-void send_heartbeat(char *buffer, int buffSize, ConnData *connInfo) {
+void send_heartbeat(char *buffer, size_t buffSize, ConnData *connInfo) {
     buffer[FRAME_SIZE] = connInfo->connectionState;
     pthread_mutex_lock(&connInfo->sendLock);
     send(connInfo->clientSock, buffer, buffSize, 0);

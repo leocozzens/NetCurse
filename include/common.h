@@ -28,10 +28,15 @@
 #define CLOSE_NOW(_Sock) printf("\nSIGINT detected: Exiting gracefully\n"); \
                          close((_Sock));
 
-#define HANDLE_SIGINT signal(SIGINT, graceful_close);
+#define HANDLE_SIGINT(_Mask, _OrigMask) sigemptyset(&_Mask); \
+                                        sigaddset(&_Mask, SIGINT); \
+                                        signal(SIGINT, graceful_close); \
+                                        sigprocmask(SIG_BLOCK, &_Mask, &_OrigMask)
 
 #define DEFAULT_WAIT_TIME 5
 #define DEFAULT_WAIT_TIME_U 0
+
+#define HEARTBEAT_INTERVAL 100000
 
 #define FRAME_SIZE 4
 
@@ -44,8 +49,8 @@
 #define USERDATA_HEADER "USER"
 #define USERDATA_FOOTER "ENDU"
 
-void graceful_close(int signum);
 _Bool check_SIGINT(void);
+void graceful_close(int signum);
 void set_sock_timeout(int socket, int waitTime, int uwaitTime);
 
 #endif

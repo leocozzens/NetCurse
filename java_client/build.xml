@@ -3,7 +3,7 @@
     <target name="default" depends="jar"/>
     <target name="new" depends="clean,jar"/>
 
-    <property name="project.name" value="TextLinkClient"/>
+    <property name="project.name" value="java_client"/>
     <property name="mainclass.name" value="Main"/>
 
     <property name="src.dir" value="src/main/java"/>

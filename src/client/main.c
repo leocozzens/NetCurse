@@ -7,8 +7,8 @@
 #include <ctasks.h>
 #include <utils.h>
 
-int main(int argc, char **argv) {
-    HANDLE_SIGINT;
+int main(int argc, char **argv) { // TODO: Make terminal options
+    signal(SIGINT, graceful_close);
     ConnData connInfo;
     char serverIP[INET_ADDRSTRLEN];
 
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
         printf("-> ");
         get_input(outData->msg, BUFF_SIZE);
 
-        pthread_mutex_lock(&connInfo.sendLock); // TODO: Check conenction state before sending message, and attempt to restablish
+        pthread_mutex_lock(&connInfo.sendLock); // TODO: Check connection state before sending message, and attempt to restablish
         send(connInfo.clientSock, outFrame, packetSize, 0);
         pthread_mutex_unlock(&connInfo.sendLock);
         printf("Data sent:\n%s\n", outData->msg);

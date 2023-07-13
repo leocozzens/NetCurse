@@ -1,10 +1,14 @@
 // Local headers
 #include <tasks.h>
+#include <unistd.h>
 
 // #define WORKER_COUNT 30
 
 int main(int argc, char **argv) {
-    HANDLE_SIGINT;
+    sigset_t mask;
+    sigset_t origMask;
+    HANDLE_SIGINT(mask, origMask);
+
     SockData serverSock;
     ActionQueue userActions;
     ServerState state = { &serverSock, &userActions };
@@ -25,15 +29,7 @@ int main(int argc, char **argv) {
     pthread_t queueLoop;
     pthread_create(&queueLoop, NULL, process_queue, &state);
 
-    while(1) {
-        if(check_SIGINT()) {
-            CLOSE_NOW(state.serverSock->socket);
-            exit(0);
-        }
-        usleep(100000);
-    }
-
-    pthread_join(connectionIntake, NULL);
-    pthread_join(queueLoop, NULL);
-    CLOSE_NOW(serverSock.socket);
+    while (!check_SIGINT()) sigsuspend(&origMask);
+    CLOSE_NOW(state.serverSock->socket);
+    return 0;
 }
