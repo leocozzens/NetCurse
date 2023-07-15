@@ -18,6 +18,11 @@ all: create_dirs
 all: $(BIN).client.bin
 all: $(BIN).server.bin
 
+client: create_dirs
+client: $(BIN).client.bin
+server: create_dirs
+server: $(BIN).server.bin
+
 +: all
 +: jclient
 

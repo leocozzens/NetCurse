@@ -40,7 +40,7 @@
 
 #define FRAME_SIZE 4
 
-#define HEARTBEAT_HEADER "HEART"
+#define HEARTBEAT_HEADER "KEEP"
 #define HEARTBEAT_FOOTER "BEAT"
 #define CNN_ALIVE '\n'
 #define CNN_DEAD '\0'
@@ -48,6 +48,8 @@
 
 #define USERDATA_HEADER "USER"
 #define USERDATA_FOOTER "ENDU"
+
+#define FORCE_INLINE __attribute((always_inline)) inline
 
 _Bool check_SIGINT(void);
 void graceful_close(int signum);

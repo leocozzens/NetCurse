@@ -5,9 +5,6 @@
 
 #define CLOSE_RECEIVER(_IP) printf("Closed connection to [%s]\n", (_IP)); \
                             close(inet_addr(_IP))
-#define FREE_P_INFO(_PInfo) free((_PInfo->capsule)); \
-                            free((_PInfo))
-
 // void *workerFunc(void *);
 
 void *connection_loop(void *arg) {
@@ -54,66 +51,26 @@ void listen_for(ServerState *state) {
 void *receive_data(void *arg) {
     DataCapsule *capsule = arg;
 
-    Context *processingInfo;
+    char recvBuffer[LISTEN_BUFF_SIZE];
+    size_t buffSize = sizeof(recvBuffer);
+    size_t offSet = 0;
     _Bool terminate = 0;
     while(1) {
-        processingInfo = malloc(sizeof(Context));
-        MEM_ERROR(processingInfo, ALLOC_ERR);
-        processingInfo->terminate = &terminate;
+        ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
 
-        if(terminate) break;
-        processingInfo->retVal = recv(capsule->clientSock.socket, processingInfo->recvBuffer, sizeof(processingInfo->recvBuffer), 0);
-        if(terminate) break;
-
-        if(processingInfo->retVal == -1) {
+        if(retVal < 0) {
             perror("SOCKET recv");
             break;
         }
-        else if(processingInfo->retVal == 0) break;
+        else if(retVal == 0) break;
         else {
-            processingInfo->capsule = malloc(sizeof(DataCapsule));
-            memcpy(processingInfo->capsule, capsule, sizeof(DataCapsule));
-            MEM_ERROR(processingInfo->capsule, ALLOC_ERR);
-
-            pthread_t interpretThread;
-            pthread_create(&interpretThread, NULL, interpret_msg, processingInfo);
-            pthread_detach(interpretThread);
+            retVal += offSet;
+            interpret_msg(recvBuffer, buffSize, retVal, &offSet, &terminate, capsule);
         }
+        if(terminate) break;
     }
     CLOSE_RECEIVER(capsule->clientSock.IPStr);
-    free(processingInfo);
     free(capsule);
-    return NULL;
-}
-
-void *interpret_msg(void *arg) {
-    Context *processingInfo = arg;
-    size_t remainingBytes = processingInfo->retVal;
-
-    while(remainingBytes > (FRAME_SIZE * 2)) {
-        size_t headerPos = processingInfo->retVal - remainingBytes;
-        switch(detect_msg_type(&remainingBytes, (processingInfo->recvBuffer + headerPos), processingInfo->capsule)) {
-            case TERMINATE_CODE:
-                *processingInfo->terminate = 1;
-                goto ENDLOOP;
-            case ENDMSG_CODE:
-                goto ENDLOOP;
-            case HEARTBEAT_CODE:
-                if(processingInfo->recvBuffer[headerPos + FRAME_SIZE] != CNN_ALIVE) {
-                    *processingInfo->terminate = 1;
-                    goto ENDLOOP;
-                }
-                break;
-            case USERDATA_CODE:
-                if(make_action((processingInfo->recvBuffer + headerPos), FRAME_SIZE, USERDATA_SIZE, processingInfo->capsule)) {
-                    *processingInfo->terminate = 1;
-                    goto ENDLOOP;
-                }
-                break;
-        }
-    }
-    ENDLOOP:
-    FREE_P_INFO(processingInfo);
     return NULL;
 }
 
