@@ -7,9 +7,9 @@ public class Main {
         if(args.length > 0) serverIP = args[0];
         else serverIP = "0.0.0.0";
         int serverPort = 9002;
+        Connection serverConn = new Connection(serverIP, serverPort);
         while(true) {
             Message outData = new Message("USER", "ENDU", in, "-> ");
-            Connection serverConn = new Connection(serverIP, serverPort);
             serverConn.sendToServer(outData.getData());
             System.out.println("Message sent: " + outData.getMessage());
         }

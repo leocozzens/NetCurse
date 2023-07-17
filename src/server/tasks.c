@@ -51,9 +51,10 @@ void *receive_data(void *arg) {
     char recvBuffer[LISTEN_BUFF_SIZE];
     size_t buffSize = sizeof(recvBuffer);
     size_t offSet = 0;
-    KeepAliveStat connStatus = { 0, 0, .sockFd = capsule->clientSock.socket };
+    KeepAliveStat connStatus = { 0, 0, capsule->clientSock.socket };
 
-    pthread_create(&connStatus.sockTimeout, NULL, socket_timeout, &connStatus);
+    pthread_t sockTimeout;
+    pthread_create(&sockTimeout, NULL, socket_timeout, &connStatus);
     while(1) {
         ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
         if(retVal < 0) {
@@ -72,7 +73,7 @@ void *receive_data(void *arg) {
         if(connStatus.terminate) break;
     }
     CLOSE_RECEIVER(capsule->clientSock);
-    pthread_join(connStatus.sockTimeout, NULL);
+    pthread_join(sockTimeout, NULL);
     free(capsule);
     return NULL;
 }

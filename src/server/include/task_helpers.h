@@ -44,7 +44,6 @@ typedef struct {
 typedef struct {
     _Bool terminate;
     _Bool messageReceived;
-    pthread_t sockTimeout;
     int sockFd;
 } KeepAliveStat;
 
