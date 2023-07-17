@@ -1,5 +1,6 @@
 // Local headers
 #include <tasks.h>
+#include <time.h>
 
 #define CONNECTIONS 50
 // void *workerFunc(void *);
@@ -35,8 +36,7 @@ void listen_for(ServerState *state) {
 
     capsule->clientSock.socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
     UTIL_CHECK(capsule->clientSock.socket, -1, "SOCKET accept");
-    set_sock_timeout(capsule->clientSock.socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U); // TODO: Better timeout method
-
+    set_sock_timeout(capsule->clientSock.socket, DEFAULT_WAIT_TIME * 10, DEFAULT_WAIT_TIME_U * 10);
     inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock.IPStr, INET_ADDRSTRLEN);
     printf("Client connected to server from [%s]\n", capsule->clientSock.IPStr);
 
@@ -51,26 +51,33 @@ void *receive_data(void *arg) {
     char recvBuffer[LISTEN_BUFF_SIZE];
     size_t buffSize = sizeof(recvBuffer);
     size_t offSet = 0;
-    _Bool terminate = 0;
+    KeepAliveStat connStatus = { 0, 0 };
+
+    pthread_create(&connStatus.sockTimeout, NULL, socket_timeout, &connStatus);
     while(1) {
-        ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0); // TODO: Only reset timer on complete msg received
+        ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
         if(retVal < 0) {
             perror("SOCKET recv");
+            connStatus.terminate = 1;
             break;
         }
-        else if(retVal == 0) break;
+        else if(retVal == 0) {
+            connStatus.terminate = 1;
+            break;
+        }
         else {
             retVal += offSet;
-            interpret_msg(recvBuffer, buffSize, retVal, &offSet, &terminate, capsule);
+            interpret_msg(recvBuffer, buffSize, retVal, &offSet, &connStatus, capsule);
         }
-        if(terminate) break;
+        if(connStatus.terminate) break;
     }
+    pthread_join(connStatus.sockTimeout, NULL);
     CLOSE_RECEIVER(capsule->clientSock);
     free(capsule);
     return NULL;
 }
 
-void *process_queue(void * arg) {
+void *process_queue(void *arg) {
     ServerState *state = arg;
     while(1) {
         Action *inData;
@@ -78,4 +85,15 @@ void *process_queue(void * arg) {
         printf("Message received from [%s]\nMSG: %s\n", inData->actionAddr, inData->userPacket.msg);
         free(inData);
     }
+}
+
+void *socket_timeout(void *arg) {
+    KeepAliveStat *connStatus = arg;
+    struct timespec waitTime = { DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U };
+    while(!connStatus->terminate) {
+        nanosleep(&waitTime, NULL);
+        if(connStatus->messageReceived) connStatus->messageReceived = 0;
+        else connStatus->terminate = 1;
+    }
+    return NULL;
 }

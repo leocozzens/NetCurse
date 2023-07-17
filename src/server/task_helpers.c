@@ -2,9 +2,10 @@
 #include <task_helpers.h>
 
 #define CHECK_FRAME(_FrameState, _SuccessCode) if((_FrameState) == (VERIFIED)) return _SuccessCode; \
-                                               else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE
+                                               else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE; \
+                                               else if((_FrameState) == (SOCKET_FAIL)) return TERMINATE_CODE
 
-void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, _Bool *terminate, DataCapsule *capsule) {
+void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, KeepAliveStat *connStatus, DataCapsule *capsule) {
     *offSet = 0;
     BuffData buffInfo = { offSet, retVal, 0 };
 
@@ -12,22 +13,24 @@ void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *of
         size_t headerPos = retVal - buffInfo.remainingBytes;
         switch(detect_msg_type((recvBuffer + headerPos), &buffInfo, capsule)) {
             case TERMINATE_CODE:
-                *terminate = 1;
+                connStatus->terminate = 1;
                 goto ENDLOOP;
             case ENDMSG_CODE:
                 goto ENDLOOP;
             case HEARTBEAT_CODE:
                 char *tempBuff = recvBuffer + headerPos;
                 if(buffInfo.fragmented) tempBuff = buffInfo.suppBuff;
-                if(tempBuff[FRAME_SIZE] != CNN_ALIVE) *terminate = 1;
+                if(tempBuff[FRAME_SIZE] == CNN_ALIVE) connStatus->messageReceived = 1;
+                else connStatus->terminate = 1;
                 if(buffInfo.fragmented) {
                     free(buffInfo.suppBuff);
                     buffInfo.fragmented = 0;
                     goto ENDLOOP;
                 }
-                if(*terminate) goto ENDLOOP;
+                if(connStatus->terminate) goto ENDLOOP;
                 break;
             case USERDATA_CODE:
+                connStatus->messageReceived = 1;
                 if(buffInfo.fragmented) {
                     make_action(buffInfo.suppBuff, FRAME_SIZE, USERDATA_SIZE, capsule);
                     free(buffInfo.suppBuff);
@@ -64,6 +67,7 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
     if(buffInfo->remainingBytes < objectSize) {
         if((strncmp(*dataPos, header, buffInfo->remainingBytes) != 0)) return WRONG_HEADER;
         *dataPos = handle_fragments(*dataPos, buffInfo, objectSize, messageDiff, capsule);
+        if(*dataPos == NULL) return SOCKET_FAIL;
         buffInfo->fragmented = 1;
     }
     if((strncmp(*dataPos, header, frameWidth) != 0)) return WRONG_HEADER;
@@ -73,6 +77,7 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
     objectSize = frameWidth + dataSize;
     if(buffInfo->remainingBytes < objectSize) {
         *dataPos = handle_fragments(*dataPos, buffInfo, objectSize, messageDiff, capsule);
+        if(*dataPos == NULL) return SOCKET_FAIL;
         buffInfo->fragmented = 1;
     }
     buffInfo->remainingBytes -= objectSize;
@@ -92,14 +97,9 @@ char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, siz
     MEM_ERROR(buffInfo->suppBuff, ALLOC_ERR);
 
     memcpy(buffInfo->suppBuff, dataPos, buffInfo->fragPos);
-    if(recv_full(capsule->clientSock.socket, buffInfo->suppBuff + buffInfo->fragPos, *buffInfo->offSet, 0)) {
-        if(buffInfo->fragmented) free(buffInfo->suppBuff);
-        CLOSE_RECEIVER(capsule->clientSock);
-        free(capsule);
-        pthread_exit(NULL);
-    }
-
     if(buffInfo->fragmented) free(dataPos);
+    if(recv_full(capsule->clientSock.socket, buffInfo->suppBuff + buffInfo->fragPos, *buffInfo->offSet, 0)) return NULL;
+
     buffInfo->remainingBytes = objectSize;
     return buffInfo->suppBuff;
 }

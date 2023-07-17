@@ -2,7 +2,7 @@
 #define COMMON_H
 
 // POSIX headers
-#include <sys/socket.h>
+#include <sys/socket.h> // TODO: Reorganize dependencies
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
@@ -33,7 +33,7 @@
                                         signal(SIGINT, graceful_close); \
                                         sigprocmask(SIG_BLOCK, &_Mask, &_OrigMask)
 
-#define DEFAULT_WAIT_TIME 5
+#define DEFAULT_WAIT_TIME 3
 #define DEFAULT_WAIT_TIME_U 0
 
 #define HEARTBEAT_INTERVAL 100000

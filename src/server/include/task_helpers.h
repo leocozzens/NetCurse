@@ -20,6 +20,7 @@ typedef enum {
 } MessageType;
 
 typedef enum {
+    SOCKET_FAIL = -1,
     WRONG_HEADER,
     BAD_FORMAT,
     VERIFIED
@@ -41,6 +42,12 @@ typedef struct {
 } DataCapsule;
 
 typedef struct {
+    _Bool terminate;
+    _Bool messageReceived;
+    pthread_t sockTimeout;
+} KeepAliveStat;
+
+typedef struct {
     size_t *offSet;
     size_t remainingBytes;
     _Bool fragmented;
@@ -48,7 +55,7 @@ typedef struct {
     char *suppBuff;
 } BuffData;
 
-void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, _Bool *terminate, DataCapsule *capsule);
+void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, KeepAliveStat *connStatus, DataCapsule *capsule);
 MessageType detect_msg_type(char *recvBuffer, BuffData *buffInfo, DataCapsule *capsule);
 FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule);
 char *handle_fragments(char *recvBuffer, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule);

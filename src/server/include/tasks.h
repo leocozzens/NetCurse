@@ -14,5 +14,6 @@ void *connection_loop(void *arg);
 void listen_for(ServerState *state);
 void *receive_data(void *arg);
 void *process_queue(void * arg);
+void *socket_timeout(void *arg);
 
 #endif
