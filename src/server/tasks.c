@@ -51,7 +51,7 @@ void *receive_data(void *arg) {
     char recvBuffer[LISTEN_BUFF_SIZE];
     size_t buffSize = sizeof(recvBuffer);
     size_t offSet = 0;
-    KeepAliveStat connStatus = { 0, 0 };
+    KeepAliveStat connStatus = { 0, 0, .sockFd = capsule->clientSock.socket };
 
     pthread_create(&connStatus.sockTimeout, NULL, socket_timeout, &connStatus);
     while(1) {
@@ -71,8 +71,8 @@ void *receive_data(void *arg) {
         }
         if(connStatus.terminate) break;
     }
-    pthread_join(connStatus.sockTimeout, NULL);
     CLOSE_RECEIVER(capsule->clientSock);
+    pthread_join(connStatus.sockTimeout, NULL);
     free(capsule);
     return NULL;
 }
@@ -93,7 +93,9 @@ void *socket_timeout(void *arg) {
     while(!connStatus->terminate) {
         nanosleep(&waitTime, NULL);
         if(connStatus->messageReceived) connStatus->messageReceived = 0;
-        else connStatus->terminate = 1;
+        else break;
     }
+    connStatus->terminate = 1;
+    shutdown(connStatus->sockFd, SHUT_RDWR); // TODO: When send functions are in place incorporate send locks here
     return NULL;
 }
