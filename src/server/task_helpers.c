@@ -123,6 +123,7 @@ void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, Dat
     MEM_ERROR(actionBuffer, ALLOC_ERR);
 
     memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
+    actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0';
     strcpy(actionBuffer->actionAddr, capsule->clientSock.IPStr);
     enqueue(capsule->state->userActions, actionBuffer);
 }
