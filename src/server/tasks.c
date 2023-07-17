@@ -35,7 +35,7 @@ void listen_for(ServerState *state) {
 
     capsule->clientSock.socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
     UTIL_CHECK(capsule->clientSock.socket, -1, "SOCKET accept");
-    set_sock_timeout(capsule->clientSock.socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U);
+    set_sock_timeout(capsule->clientSock.socket, DEFAULT_WAIT_TIME, DEFAULT_WAIT_TIME_U); // TODO: Better timeout method
 
     inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock.IPStr, INET_ADDRSTRLEN);
     printf("Client connected to server from [%s]\n", capsule->clientSock.IPStr);
@@ -65,7 +65,7 @@ void *receive_data(void *arg) {
         }
         if(terminate) break;
     }
-    CLOSE_RECEIVER(capsule->clientSock.IPStr);
+    CLOSE_RECEIVER(capsule->clientSock);
     free(capsule);
     return NULL;
 }

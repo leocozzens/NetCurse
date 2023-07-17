@@ -94,7 +94,7 @@ char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, siz
     memcpy(buffInfo->suppBuff, dataPos, buffInfo->fragPos);
     if(recv_full(capsule->clientSock.socket, buffInfo->suppBuff + buffInfo->fragPos, *buffInfo->offSet, 0)) {
         if(buffInfo->fragmented) free(buffInfo->suppBuff);
-        CLOSE_RECEIVER(capsule->clientSock.IPStr);
+        CLOSE_RECEIVER(capsule->clientSock);
         free(capsule);
         pthread_exit(NULL);
     }
@@ -123,7 +123,7 @@ void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, Dat
     MEM_ERROR(actionBuffer, ALLOC_ERR);
 
     memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
-    actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0';
+    actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0'; // TODO: Unpack msg into string and null terminate there instead
     strcpy(actionBuffer->actionAddr, capsule->clientSock.IPStr);
     enqueue(capsule->state->userActions, actionBuffer);
 }

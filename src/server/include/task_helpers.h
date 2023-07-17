@@ -9,8 +9,8 @@
 
 #define LISTEN_BUFF_SIZE (FRAME_SIZE * 2 + USERDATA_SIZE) * MSG_BATCH_SIZE
 
-#define CLOSE_RECEIVER(_IP) printf("Closed connection to [%s]\n", (_IP)); \
-                            close(inet_addr(_IP))
+#define CLOSE_RECEIVER(_SockStruct) printf("Closed connection to [%s]\n", (_SockStruct.IPStr)); \
+                            close(_SockStruct.socket)
 
 typedef enum {
     TERMINATE_CODE = -1,
