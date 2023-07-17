@@ -2,7 +2,6 @@
 #define TASKS_H
 
 // C standard libraries
-#include <unistd.h>
 #include <errno.h>
 
 // Local Headers

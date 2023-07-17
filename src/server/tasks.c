@@ -2,9 +2,6 @@
 #include <tasks.h>
 
 #define CONNECTIONS 50
-
-#define CLOSE_RECEIVER(_IP) printf("Closed connection to [%s]\n", (_IP)); \
-                            close(inet_addr(_IP))
 // void *workerFunc(void *);
 
 void *connection_loop(void *arg) {
@@ -56,8 +53,7 @@ void *receive_data(void *arg) {
     size_t offSet = 0;
     _Bool terminate = 0;
     while(1) {
-        ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
-
+        ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0); // TODO: Only reset timer on complete msg received
         if(retVal < 0) {
             perror("SOCKET recv");
             break;
