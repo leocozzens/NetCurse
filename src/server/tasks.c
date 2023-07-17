@@ -3,6 +3,9 @@
 #include <time.h>
 
 #define CONNECTIONS 50
+
+#define FALLBACK_WAIT DEFAULT_WAIT_TIME * 3
+#define FALLBACK_WAIT_U DEFAULT_WAIT_TIME_U * 3
 // void *workerFunc(void *);
 
 void *connection_loop(void *arg) {
@@ -36,7 +39,7 @@ void listen_for(ServerState *state) {
 
     capsule->clientSock.socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
     UTIL_CHECK(capsule->clientSock.socket, -1, "SOCKET accept");
-    set_sock_timeout(capsule->clientSock.socket, DEFAULT_WAIT_TIME * 10, DEFAULT_WAIT_TIME_U * 10);
+    set_sock_timeout(capsule->clientSock.socket, FALLBACK_WAIT, FALLBACK_WAIT_U);
     inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock.IPStr, INET_ADDRSTRLEN);
     printf("Client connected to server from [%s]\n", capsule->clientSock.IPStr);
 
@@ -97,6 +100,6 @@ void *socket_timeout(void *arg) {
         else break;
     }
     connStatus->terminate = 1;
-    shutdown(connStatus->sockFd, SHUT_RDWR); // TODO: When send functions are in place incorporate send locks here
+    shutdown(connStatus->clientSock, SHUT_RDWR); // TODO: When send functions are in place incorporate send locks here
     return NULL;
 }

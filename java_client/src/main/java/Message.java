@@ -3,7 +3,7 @@ import java.util.Scanner;
 public class Message {
     private String outMessage;
     private String outData;
-    final int messageSize = 256;
+    final int MESSAGE_SIZE = 256;
 
     public Message(String header, String footer, Scanner in, String prompt) {
         System.out.print(prompt);
@@ -25,7 +25,7 @@ public class Message {
         StringBuilder messageBuilder = new StringBuilder(header);
         messageBuilder.append(this.outMessage);
         messageBuilder.append('\0');
-        for(int i = this.outMessage.length() + 1; i < messageSize; i++) {
+        for(int i = this.outMessage.length() + 1; i < MESSAGE_SIZE; i++) {
             messageBuilder.append(' ');
         }
         messageBuilder.append(footer);
