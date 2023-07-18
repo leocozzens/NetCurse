@@ -18,6 +18,7 @@ public class Main {
         StayAlive KALoop = new StayAlive(serverConn);
         Thread KAThread = new Thread(KALoop);
         KAThread.start();
+        ExitHandler.handleExit(KALoop);
 
         while(true) {
             outFactory.createMessage(in, PROMPT);

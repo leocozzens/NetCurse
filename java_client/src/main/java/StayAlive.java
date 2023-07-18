@@ -6,30 +6,35 @@ public class StayAlive implements Runnable {
     private static final String ALIVE = "\n";
     private static final String DEAD = "\0";
 
-    private String connStat;
+    private boolean isAlive;
 
     private Connection serverConn;
     private MessageFactory beatFactory;
 
     public StayAlive(Connection serverConn) {
+        this.isAlive = true;
         this.serverConn = serverConn;
-        this.connStat = ALIVE;
         this.beatFactory = new MessageFactory(HEADER, FOOTER, KA_SIZE);
     }
 
     @Override
     public void run() {
-        while(true) {
-        this.beatFactory.createMessage(connStat);
-            serverConn.sendToServer(beatFactory.getData());
+        while(isAlive) {
+            sendBeat(ALIVE);
             try {
                 Thread.sleep(SLEEP_MS);
             }
-            catch(Exception e) {}
+            catch(InterruptedException e) {}
         }
+        sendBeat(DEAD);
+    }
+
+    public void sendBeat(String status) {
+        this.beatFactory.createMessage(status);
+        serverConn.sendToServer(beatFactory.getData());
     }
 
     public void sendKill() {
-        this.connStat = DEAD;
+        this.isAlive = false;
     }
 }
