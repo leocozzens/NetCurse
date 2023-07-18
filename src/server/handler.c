@@ -1,5 +1,5 @@
 // Local headers
-#include <task_helpers.h>
+#include <handler.h>
 
 #define CHECK_FRAME(_FrameState, _SuccessCode) if((_FrameState) == (VERIFIED)) return _SuccessCode; \
                                                else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE; \
@@ -9,52 +9,43 @@ void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *of
     *offSet = 0;
     BuffData buffInfo = { offSet, retVal, 0 };
 
-    while(buffInfo.remainingBytes > 0) {
+    while(buffInfo.remainingBytes > 0 && !connStatus->terminate) {
         size_t headerPos = retVal - buffInfo.remainingBytes;
-        switch(detect_msg_type((recvBuffer + headerPos), &buffInfo, capsule)) {
+        char *currentMessage = recvBuffer + headerPos;
+
+        switch(detect_msg_type(&currentMessage, &buffInfo, capsule)) {
             case TERMINATE_CODE:
                 connStatus->terminate = 1;
                 goto ENDLOOP;
             case ENDMSG_CODE:
                 goto ENDLOOP;
-            case HEARTBEAT_CODE:
-                char *tempBuff = recvBuffer + headerPos;
-                if(buffInfo.fragmented) tempBuff = buffInfo.suppBuff;
-                if(tempBuff[FRAME_SIZE] == CNN_ALIVE) connStatus->messageReceived = 1;
-                else connStatus->terminate = 1;
-                if(buffInfo.fragmented) {
-                    free(buffInfo.suppBuff);
-                    buffInfo.fragmented = 0;
+            case KEEPALIVE_CODE:
+                if(currentMessage[FRAME_SIZE] == CNN_ALIVE) connStatus->messageReceived = 1;
+                else {
+                    connStatus->terminate = 1;
                     goto ENDLOOP;
                 }
-                if(connStatus->terminate) goto ENDLOOP;
+                send_keepalive(connStatus, capsule->clientSock.socket);
                 break;
             case USERDATA_CODE:
                 connStatus->messageReceived = 1;
-                if(buffInfo.fragmented) {
-                    make_action(buffInfo.suppBuff, FRAME_SIZE, USERDATA_SIZE, capsule);
-                    free(buffInfo.suppBuff);
-                    buffInfo.fragmented = 0;
-                    goto ENDLOOP;
-                }
-                else make_action(recvBuffer + headerPos, FRAME_SIZE, USERDATA_SIZE, capsule);
+                make_action(currentMessage, FRAME_SIZE, USERDATA_SIZE, capsule);
                 break;
         }
     }
     ENDLOOP:
     if(buffInfo.fragmented) {
-        memcpy(recvBuffer, buffInfo.suppBuff + buffInfo.fragPos, *offSet);
+        if(*offSet > 0) memcpy(recvBuffer, buffInfo.suppBuff + buffInfo.fragPos, *offSet);
         free(buffInfo.suppBuff);
     }
 }
 
-MessageType detect_msg_type(char *recvBuffer, BuffData *buffInfo, DataCapsule *capsule) {
+MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule) {
     FrameCode frameState;
-    char *dataPos = recvBuffer;
-    frameState = verify_frame(&dataPos, buffInfo, FRAME_SIZE, BEAT_SIZE, HEARTBEAT_HEADER, HEARTBEAT_FOOTER, capsule);
-    CHECK_FRAME(frameState, HEARTBEAT_CODE);
+    frameState = verify_frame(recvBuffer, buffInfo, FRAME_SIZE, KEEPALIVE_SIZE, KEEPALIVE_HEADER, KEEPALIVE_FOOTER, capsule);
+    CHECK_FRAME(frameState, KEEPALIVE_CODE);
 
-    frameState = verify_frame(&dataPos, buffInfo, FRAME_SIZE, USERDATA_SIZE, USERDATA_HEADER, USERDATA_FOOTER, capsule);
+    frameState = verify_frame(recvBuffer, buffInfo, FRAME_SIZE, USERDATA_SIZE, USERDATA_HEADER, USERDATA_FOOTER, capsule);
     CHECK_FRAME(frameState, USERDATA_CODE);
     return ENDMSG_CODE;
 }
@@ -86,6 +77,16 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
     if(strncmp(*dataPos + objectSize, footer, frameWidth) != 0) return BAD_FORMAT;
     *buffInfo->offSet = 0;
     return VERIFIED;
+}
+
+void send_keepalive(KeepAliveStat *connStatus, int clientSock) {
+    connStatus->messageReceived = 1;
+    if(connStatus->terminate) connStatus->kaOut[FRAME_SIZE] = CNN_DEAD;
+    else connStatus->kaOut[FRAME_SIZE] = CNN_ALIVE;
+    if(send(clientSock, connStatus->kaOut, connStatus->kaSize, MSG_NOSIGNAL) == -1) {
+        connStatus->terminate = 1;
+        shutdown(clientSock, SHUT_RDWR);
+    }
 }
 
 char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule) {

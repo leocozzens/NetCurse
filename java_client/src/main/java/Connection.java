@@ -3,6 +3,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 public class Connection {
+    // private boolean connAlive;
     private Socket sock;
     private OutputStream serverStream;
 
@@ -11,10 +12,11 @@ public class Connection {
             this.sock = new Socket(serverIP, serverPort);
             this.serverStream = sock.getOutputStream();
         }
-        catch(Exception e) {
+        catch(IOException e) {
             System.err.println("Error establishing connection.\n" + e);
             System.exit(1);
         }
+        // this.connAlive = true;
     }
     public void sendToServer(String outData) {
         try {

@@ -21,10 +21,10 @@ int main(int argc, char **argv) { // TODO: Make terminal options
     char *outFrame = make_packet(USERDATA_SIZE, FRAME_SIZE, USERDATA_HEADER, USERDATA_FOOTER, &packetSize);
     UserData *outData = (UserData*) (outFrame + FRAME_SIZE);
 
-    pthread_t heartBeat;
+    pthread_t keepAlive;
     pthread_mutex_init(&connInfo.sendLock, NULL);
-    pthread_create(&heartBeat, NULL, beat_loop, &connInfo);
-    pthread_detach(heartBeat);
+    pthread_create(&keepAlive, NULL, keepalive_loop, &connInfo);
+    pthread_detach(keepAlive);
     while(1) {
         printf("-> ");
         get_input(outData->msg, BUFF_SIZE);

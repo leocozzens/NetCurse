@@ -58,10 +58,10 @@ void *receive_data(void *arg) {
 
     pthread_t sockTimeout;
     pthread_create(&sockTimeout, NULL, socket_timeout, &connStatus);
+    connStatus.kaOut = make_packet(KEEPALIVE_SIZE, FRAME_SIZE, KEEPALIVE_HEADER, KEEPALIVE_FOOTER, &connStatus.kaSize);
     while(1) {
         ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
         if(retVal < 0) {
-            perror("SOCKET recv");
             connStatus.terminate = 1;
             break;
         }
@@ -75,9 +75,11 @@ void *receive_data(void *arg) {
         }
         if(connStatus.terminate) break;
     }
+    send_keepalive(&connStatus, capsule->clientSock.socket);
     CLOSE_RECEIVER(capsule->clientSock);
     pthread_join(sockTimeout, NULL);
     free(capsule);
+    free(connStatus.kaOut);
     return NULL;
 }
 

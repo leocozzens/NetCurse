@@ -36,15 +36,15 @@
 #define DEFAULT_WAIT_TIME 3
 #define DEFAULT_WAIT_TIME_U 0
 
-#define HEARTBEAT_INTERVAL 100000
+#define KEEPALIVE_INTERVAL 100000
 
 #define FRAME_SIZE 4
 
-#define HEARTBEAT_HEADER "KEEP"
-#define HEARTBEAT_FOOTER "ALVE"
+#define KEEPALIVE_HEADER "KEEP"
+#define KEEPALIVE_FOOTER "ALVE"
+#define KEEPALIVE_SIZE 1
 #define CNN_ALIVE '\n'
 #define CNN_DEAD '\0'
-#define BEAT_SIZE 1
 
 #define USERDATA_HEADER "USER"
 #define USERDATA_FOOTER "ENDU"
@@ -54,5 +54,6 @@
 _Bool check_SIGINT(void);
 void graceful_close(int signum);
 void set_sock_timeout(int socket, int waitTime, int uwaitTime);
+char *make_packet(size_t dataSize, size_t frameSize, const char *header, const char *footer, size_t *packetSize);
 
 #endif
