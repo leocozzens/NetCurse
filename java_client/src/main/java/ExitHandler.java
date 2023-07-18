@@ -1,21 +1,21 @@
 public class ExitHandler {
-    public static void handleExit(StayAlive KALoop) {
-        OnExit exitFunc = new OnExit(KALoop);
+    public static void handleExit(SocketConnection activeConn) {
+        OnExit exitFunc = new OnExit(activeConn);
         Thread exitThread = new Thread(exitFunc);
 
         Runtime.getRuntime().addShutdownHook(exitThread);
     }
 
     private static class OnExit implements Runnable {
-        private StayAlive KALoop;
+        private SocketConnection activeConn;
 
-        public OnExit(StayAlive KALoop) {
-            this.KALoop = KALoop;
+        public OnExit(SocketConnection activeConn) {
+            this.activeConn = activeConn;
         }
 
         @Override
         public void run() {
-            this.KALoop.sendKill();
+            this.activeConn.killConn();
             System.err.println("\nReceived interruption. Performing cleanup.");
         }
     }

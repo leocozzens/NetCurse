@@ -6,19 +6,17 @@ public class StayAlive implements Runnable {
     private static final String ALIVE = "\n";
     private static final String DEAD = "\0";
 
-    private boolean isAlive;
-    private Connection serverConn;
+    private SocketConnection serverConn;
     private MessageFactory kaFactory;
 
-    public StayAlive(Connection serverConn) {
-        this.isAlive = true;
+    public StayAlive(SocketConnection serverConn) {
         this.serverConn = serverConn;
         this.kaFactory = new MessageFactory(HEADER, FOOTER, KA_SIZE);
     }
 
     @Override
     public void run() {
-        while(isAlive) {
+        while(this.serverConn.checkAlive()) {
             sendKeepAlive(ALIVE);
             try {
                 Thread.sleep(SLEEP_MS);
@@ -31,9 +29,5 @@ public class StayAlive implements Runnable {
     public void sendKeepAlive(String status) {
         this.kaFactory.createMessage(status);
         serverConn.sendToServer(kaFactory.getData());
-    }
-
-    public void sendKill() {
-        this.isAlive = false;
     }
 }

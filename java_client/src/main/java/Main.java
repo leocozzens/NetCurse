@@ -13,12 +13,8 @@ public class Main {
         if(args.length > 0) serverIP = args[0];
         else serverIP = "0.0.0.0";
         int serverPort = 9002;
-        Connection serverConn = new Connection(serverIP, serverPort);
-
-        StayAlive KALoop = new StayAlive(serverConn);
-        Thread KAThread = new Thread(KALoop);
-        KAThread.start();
-        ExitHandler.handleExit(KALoop);
+        SocketConnection serverConn = new SocketConnection(serverIP, serverPort, MESSAGE_SIZE);
+        ExitHandler.handleExit(serverConn);
 
         while(true) {
             outFactory.createMessage(in, PROMPT);
