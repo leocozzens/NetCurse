@@ -12,7 +12,8 @@ public class Connection {
             this.serverStream = sock.getOutputStream();
         }
         catch(Exception e) {
-            System.out.println("Error establishing socket: " + e);
+            System.err.println("Error establishing connection.\n" + e);
+            System.exit(1);
         }
     }
     public void sendToServer(String outData) {
@@ -21,7 +22,7 @@ public class Connection {
             this.serverStream.flush();
         }
         catch(IOException e) {
-            System.out.println("Error sending data to server: " + e);
+            System.err.println("Error sending data to server.\n" + e);
         }
     }
 }

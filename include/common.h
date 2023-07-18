@@ -41,7 +41,7 @@
 #define FRAME_SIZE 4
 
 #define HEARTBEAT_HEADER "KEEP"
-#define HEARTBEAT_FOOTER "BEAT"
+#define HEARTBEAT_FOOTER "ALVE"
 #define CNN_ALIVE '\n'
 #define CNN_DEAD '\0'
 #define BEAT_SIZE 1

@@ -1,14 +1,19 @@
 import java.util.Scanner;
 
 public class MessageFactory {
-    private final int MESSAGE_SIZE = 256;
+    private static final char TERMINATOR = '\0';
+    private static final char EMPTY_CHAR = ' ';
+
+    private int messageSize;
+    private StringBuilder messageBuilder;
     private String header;
     private String footer;
 
     private String outMessage;
     private String outData;
-
-    public MessageFactory(String header, String footer) {
+    public MessageFactory(String header, String footer, int messageSize) {
+        this.messageBuilder = new StringBuilder();
+        this.messageSize = messageSize;
         this.header = header;
         this.footer = footer;
     }
@@ -19,7 +24,7 @@ public class MessageFactory {
             this.outMessage = in.nextLine();
         }
         catch(Exception e) {
-            e.printStackTrace();
+            System.err.println("Unable to read input, please try again.");
         }
         constructMessage();
     }
@@ -30,14 +35,19 @@ public class MessageFactory {
     }
     
     private void constructMessage() {
-        StringBuilder messageBuilder = new StringBuilder(this.header);
-        messageBuilder.append(this.outMessage);
-        messageBuilder.append('\0');
-        for(int i = this.outMessage.length() + 1; i < MESSAGE_SIZE; i++) {
-            messageBuilder.append(' ');
+        this.messageBuilder.append(header);
+        int messageLen = Math.min(this.outMessage.length(), messageSize);
+        this.messageBuilder.append(this.outMessage.substring(0, messageLen));
+        if(messageLen < messageSize) {
+            this.messageBuilder.append(TERMINATOR);
+            messageLen++;
         }
-        messageBuilder.append(this.footer);
-        this.outData = messageBuilder.toString();
+        for(int i = messageLen; i < this.messageSize; i++) {
+            this.messageBuilder.append(EMPTY_CHAR);
+        }
+        this.messageBuilder.append(this.footer);
+        this.outData = this.messageBuilder.toString();
+        this.messageBuilder.setLength(0);
     }
 
     public String getData() {

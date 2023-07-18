@@ -31,7 +31,7 @@ void *connection_loop(void *arg) {
 
 void listen_for(ServerState *state) {
     DataCapsule *capsule = malloc(sizeof(DataCapsule));
-    MEM_ERROR(capsule, ALLOC_ERR);
+    MEM_ERROR(capsule, ALLOC_ERR); // TODO: Rework memerror as not to be fatal for server
     capsule->state = state;
 
     SADDR_IN clientAddr;
