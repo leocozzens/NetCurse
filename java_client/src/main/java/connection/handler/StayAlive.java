@@ -1,3 +1,9 @@
+package connection.handler;
+
+// Local classes
+import connection.SocketConnection;
+import message.MessageFactory;
+
 public class StayAlive implements Runnable {
     private static final int KA_SIZE = 1;
     private static final int SLEEP_MS = 100;

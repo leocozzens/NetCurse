@@ -1,3 +1,6 @@
+package message;
+
+// JDK classes
 import java.util.Scanner;
 
 public class MessageFactory {

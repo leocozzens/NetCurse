@@ -59,7 +59,6 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
         if((strncmp(*dataPos, header, buffInfo->remainingBytes) != 0)) return WRONG_HEADER;
         *dataPos = handle_fragments(*dataPos, buffInfo, objectSize, messageDiff, capsule);
         if(*dataPos == NULL) return SOCKET_FAIL;
-        buffInfo->fragmented = 1;
     }
     if((strncmp(*dataPos, header, frameWidth) != 0)) return WRONG_HEADER;
     buffInfo->remainingBytes -= objectSize;
@@ -69,7 +68,6 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
     if(buffInfo->remainingBytes < objectSize) {
         *dataPos = handle_fragments(*dataPos, buffInfo, objectSize, messageDiff, capsule);
         if(*dataPos == NULL) return SOCKET_FAIL;
-        buffInfo->fragmented = 1;
     }
     buffInfo->remainingBytes -= objectSize;
     messageDiff += objectSize;
@@ -95,13 +93,14 @@ char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, siz
     else buffInfo->fragPos = buffInfo->remainingBytes;
 
     buffInfo->suppBuff = malloc(objectSize + bufferDiff);
-    MEM_ERROR(buffInfo->suppBuff, ALLOC_ERR);
+    if(buffInfo->suppBuff == NULL) return NULL;
 
     memcpy(buffInfo->suppBuff, dataPos, buffInfo->fragPos);
     if(buffInfo->fragmented) free(dataPos);
     if(recv_full(capsule->clientSock.socket, buffInfo->suppBuff + buffInfo->fragPos, *buffInfo->offSet, 0)) return NULL;
 
     buffInfo->remainingBytes = objectSize;
+    buffInfo->fragmented = 1;
     return buffInfo->suppBuff;
 }
 
@@ -109,11 +108,7 @@ _Bool recv_full(int socket, char *buffer, size_t desiredSize, int flags) {
     size_t totalData = 0;
     while(totalData < desiredSize) {
         ssize_t received = recv(socket, buffer + totalData, desiredSize - totalData, flags);
-        if(received < 0) {
-            perror("SOCKET recv");
-            return 1;
-        }
-        else if(received == 0) return 1;
+        if(received < 1) return 1; // Check for bed recv call
         totalData += received;
     }
     return 0;

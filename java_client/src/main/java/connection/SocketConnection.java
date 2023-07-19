@@ -1,34 +1,37 @@
+package connection;
+
+// JDK classes
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
+// Local classes
+import connection.handler.Listener;
+import connection.handler.StayAlive;
+
 public class SocketConnection {
+    private OutputStream serverStream;
     private Socket sock;
     private boolean connAlive;
-
-    private Listener recver;
-    private StayAlive KALoop;
-    private OutputStream serverStream;
 
     public SocketConnection(String serverIP, int serverPort, int messageSize) {
         try {
             this.sock = new Socket(serverIP, serverPort);
             this.serverStream = sock.getOutputStream();
-
-            this.recver = new Listener(sock.getInputStream(), this, messageSize);
-            Thread recvThread = new Thread(this.recver);
-            recvThread.start();
-
-            this.KALoop = new StayAlive(this);
-            Thread KAThread = new Thread(this.KALoop);
-            KAThread.start();
+            makeThread(new Listener(sock.getInputStream(), this, messageSize));
         }
         catch(IOException e) {
             System.err.println("Error establishing connection.\n" + e);
             System.exit(-1);
         }
 
+        makeThread(new StayAlive(this));
         this.connAlive = true;
+    }
+
+    public void makeThread(Runnable threadClass) {
+        Thread newThread = new Thread(threadClass);
+        newThread.start();
     }
 
     public boolean sendToServer(String outData) {

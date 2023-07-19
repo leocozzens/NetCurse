@@ -1,4 +1,9 @@
+// JDK classes
 import java.util.Scanner;
+
+// Local classes
+import connection.SocketConnection;
+import message.MessageFactory;
 
 public class Main {
     private static final int MESSAGE_SIZE = 256;

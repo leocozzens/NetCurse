@@ -1,5 +1,12 @@
+package connection.handler;
+
+// JDK classes
 import java.io.IOException;
 import java.io.InputStream;
+
+// Local classes
+import connection.SocketConnection;
+import message.handler.Parser;
 
 public class Listener implements Runnable {
     private SocketConnection activeConnection;
@@ -17,7 +24,7 @@ public class Listener implements Runnable {
         byte[] buffer = new byte[messageSize * 10];
         try {
             while(true) {
-                interpretData(receiveData(buffer));
+                Parser.interpretData(receiveData(buffer));
             }
         }
         catch(IOException e) {
@@ -31,9 +38,5 @@ public class Listener implements Runnable {
         bytesRead = serverInStream.read(buffer);
         if(bytesRead == -1) throw new IOException("Failed to read from input stream");
         return new String(buffer, 0, bytesRead);
-    }
-
-    private void interpretData(String inData) {
-        System.out.println("Received: " + inData);
     }
 }

@@ -1,3 +1,6 @@
+// Local classes
+import connection.SocketConnection;
+
 public class ExitHandler {
     public static void handleExit(SocketConnection activeConn) {
         OnExit exitFunc = new OnExit(activeConn);

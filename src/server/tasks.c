@@ -61,11 +61,7 @@ void *receive_data(void *arg) {
     connStatus.kaOut = make_packet(KEEPALIVE_SIZE, FRAME_SIZE, KEEPALIVE_HEADER, KEEPALIVE_FOOTER, &connStatus.kaSize);
     while(1) {
         ssize_t retVal = recv(capsule->clientSock.socket, recvBuffer + offSet, buffSize - offSet, 0);
-        if(retVal < 0) {
-            connStatus.terminate = 1;
-            break;
-        }
-        else if(retVal == 0) {
+        if(retVal < 1) { // Check for bad recv call
             connStatus.terminate = 1;
             break;
         }
