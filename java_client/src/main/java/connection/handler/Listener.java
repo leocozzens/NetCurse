@@ -11,11 +11,13 @@ import message.handler.Parser;
 public class Listener implements Runnable {
     private SocketConnection activeConnection;
     private InputStream serverInStream;
+    private Parser messageParser;
     private int messageSize;
 
     public Listener(InputStream serverInStream, SocketConnection activeConnection, int messageSize) {
         this.activeConnection = activeConnection;
         this.serverInStream = serverInStream;
+        this.messageParser = new Parser();
         this.messageSize = messageSize;
     }
     
@@ -24,7 +26,7 @@ public class Listener implements Runnable {
         byte[] buffer = new byte[messageSize * 10];
         try {
             while(true) {
-                Parser.interpretData(receiveData(buffer));
+                this.messageParser.interpretData(receiveData(buffer));
             }
         }
         catch(IOException e) {

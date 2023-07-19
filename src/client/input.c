@@ -1,6 +1,8 @@
 #include <input.h>
 
-void clear_input(void) {
+static void clear_input(void);
+
+static void clear_input(void) {
     int c;
     while((c = fgetc(stdin)) != '\n' && c != EOF);
 }

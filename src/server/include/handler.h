@@ -58,11 +58,7 @@ typedef struct {
 } BuffData;
 
 void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, KeepAliveStat *connStatus, DataCapsule *capsule);
-MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule);
-FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule);
-void send_keepalive(KeepAliveStat *connStatus, int clientSock);
-char *handle_fragments(char *recvBuffer, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule);
 _Bool recv_full(int socket, char *buffer, size_t desiredSize, int flags);
-void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule);
+void send_keepalive(KeepAliveStat *connStatus, int clientSock);
 
 #endif

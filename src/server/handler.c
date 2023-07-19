@@ -5,6 +5,11 @@
                                                else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE; \
                                                else if((_FrameState) == (SOCKET_FAIL)) return TERMINATE_CODE
 
+static MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule);
+static FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule);
+static char *handle_fragments(char *recvBuffer, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule);
+static void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule);
+
 void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *offSet, KeepAliveStat *connStatus, DataCapsule *capsule) {
     *offSet = 0;
     BuffData buffInfo = { offSet, retVal, 0 };
@@ -40,7 +45,7 @@ void interpret_msg(char *recvBuffer, size_t buffSize, ssize_t retVal, size_t *of
     }
 }
 
-MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule) {
+static MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule) {
     FrameCode frameState;
     frameState = verify_frame(recvBuffer, buffInfo, FRAME_SIZE, KEEPALIVE_SIZE, KEEPALIVE_HEADER, KEEPALIVE_FOOTER, capsule);
     CHECK_FRAME(frameState, KEEPALIVE_CODE);
@@ -50,7 +55,7 @@ MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *
     return ENDMSG_CODE;
 }
 
-FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule) {
+static FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule) {
     size_t messageDiff = 0;
     size_t objectSize;
 
@@ -77,17 +82,7 @@ FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, si
     return VERIFIED;
 }
 
-void send_keepalive(KeepAliveStat *connStatus, int clientSock) {
-    connStatus->messageReceived = 1;
-    if(connStatus->terminate) connStatus->kaOut[FRAME_SIZE] = CNN_DEAD;
-    else connStatus->kaOut[FRAME_SIZE] = CNN_ALIVE;
-    if(send(clientSock, connStatus->kaOut, connStatus->kaSize, MSG_NOSIGNAL) == -1) {
-        connStatus->terminate = 1;
-        shutdown(clientSock, SHUT_RDWR);
-    }
-}
-
-char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule) {
+static char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, size_t bufferDiff, DataCapsule *capsule) {
     *buffInfo->offSet = objectSize - buffInfo->remainingBytes;
     if(buffInfo->fragmented) buffInfo->fragPos = buffInfo->remainingBytes + bufferDiff;
     else buffInfo->fragPos = buffInfo->remainingBytes;
@@ -104,6 +99,16 @@ char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSize, siz
     return buffInfo->suppBuff;
 }
 
+static void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule) {
+    Action *actionBuffer = malloc(sizeof(Action));
+    MEM_ERROR(actionBuffer, ALLOC_ERR);
+
+    memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
+    actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0'; // TODO: Unpack msg into string and null terminate there instead
+    strcpy(actionBuffer->actionAddr, capsule->clientSock.IPStr);
+    enqueue(capsule->state->userActions, actionBuffer);
+}
+
 _Bool recv_full(int socket, char *buffer, size_t desiredSize, int flags) {
     size_t totalData = 0;
     while(totalData < desiredSize) {
@@ -114,12 +119,12 @@ _Bool recv_full(int socket, char *buffer, size_t desiredSize, int flags) {
     return 0;
 }
 
-void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule) {
-    Action *actionBuffer = malloc(sizeof(Action));
-    MEM_ERROR(actionBuffer, ALLOC_ERR);
-
-    memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
-    actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0'; // TODO: Unpack msg into string and null terminate there instead
-    strcpy(actionBuffer->actionAddr, capsule->clientSock.IPStr);
-    enqueue(capsule->state->userActions, actionBuffer);
+void send_keepalive(KeepAliveStat *connStatus, int clientSock) {
+    connStatus->messageReceived = 1;
+    if(connStatus->terminate) connStatus->kaOut[FRAME_SIZE] = CNN_DEAD;
+    else connStatus->kaOut[FRAME_SIZE] = CNN_ALIVE;
+    if(send(clientSock, connStatus->kaOut, connStatus->kaSize, MSG_NOSIGNAL) == -1) {
+        connStatus->terminate = 1;
+        shutdown(clientSock, SHUT_RDWR);
+    }
 }

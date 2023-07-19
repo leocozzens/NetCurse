@@ -1,6 +1,6 @@
 #include <common.h>
 
-static volatile _Bool SIGINTFlag = 0;
+volatile static _Bool SIGINTFlag = 0;
 
 FORCE_INLINE _Bool check_SIGINT(void) {
     return SIGINTFlag;
