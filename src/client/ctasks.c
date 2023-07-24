@@ -1,3 +1,8 @@
+// POSIX headers
+#include <pthread.h>
+#include <sys/socket.h>
+
+// Local headers
 #include <ctasks.h>
 #include <common.h>
 

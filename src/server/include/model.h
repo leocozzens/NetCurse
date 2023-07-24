@@ -1,9 +1,13 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+// C standard libraries
+#include <semaphore.h>
+
 // Local headers
 #include <common.h>
 #include <shared_model.h>
+
 
 typedef struct Action {
     UserData userPacket;
@@ -15,7 +19,7 @@ typedef struct {
     Action *head;
     Action *tail;
     pthread_mutex_t *queueLock;
-    pthread_cond_t *queueReady;
+    sem_t *queueReady;
 } ActionQueue;
 
 void init_queue(ActionQueue *userActions);

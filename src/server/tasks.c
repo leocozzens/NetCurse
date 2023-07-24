@@ -1,12 +1,22 @@
+// C standard libraries
+#include <time.h>
+#include <unistd.h>
+#include <errno.h>
+
+// POSIX headers
+#include <pthread.h>
+
 // Local headers
 #include <tasks.h>
-#include <time.h>
+#include <handler.h>
 
 #define CONNECTIONS 50
-
+#define MSG_BATCH_SIZE 10
+#define LISTEN_BUFF_SIZE (FRAME_SIZE * 2 + USERDATA_SIZE) * MSG_BATCH_SIZE
 #define FALLBACK_WAIT DEFAULT_WAIT_TIME * 3
 #define FALLBACK_WAIT_U DEFAULT_WAIT_TIME_U * 3
-// void *workerFunc(void *);
+
+static void listen_for(ServerState *state);
 
 void *connection_loop(void *arg) {
     ServerState *state = arg;
@@ -19,26 +29,34 @@ void *connection_loop(void *arg) {
     serverAddr.sin_addr.s_addr = inet_addr(state->serverSock->IPStr);
 
     state->serverSock->socket = socket(AF_INET, SOCK_STREAM, 0);
-    UTIL_CHECK(state->serverSock->socket, -1, "SOCKET socket");
+    UTIL_CHECK(state->serverSock->socket, UTIL_ERRVAL, "SOCKET socket");
 
     UTIL_CHECK(bind(state->serverSock->socket, (SADDR*) &serverAddr, serverAddrLen), -1, "SOCKET bind");
-    UTIL_CHECK(listen(state->serverSock->socket, CONNECTIONS), -1, "SOCKET listen");
+    UTIL_CHECK(listen(state->serverSock->socket, CONNECTIONS), UTIL_ERRVAL, "SOCKET listen");
 
     printf("Waiting for connections...\n\n");
     while(1) listen_for(state);
 }
 
 
-void listen_for(ServerState *state) {
+static void listen_for(ServerState *state) {
     DataCapsule *capsule = malloc(sizeof(DataCapsule));
-    MEM_ERROR(capsule, ALLOC_ERR); // TODO: Rework memerror as not to be fatal for server
+    while(capsule == NULL) {
+        fprintf(stderr, "Trouble accepting new connection: %s\n", ALLOC_ERR);
+        sleep(1);
+        capsule = malloc(sizeof(DataCapsule));
+    }
     capsule->state = state;
 
     SADDR_IN clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);
 
     capsule->clientSock.socket = accept(state->serverSock->socket, (SADDR*) &clientAddr, &clientAddrLen);
-    UTIL_CHECK(capsule->clientSock.socket, -1, "SOCKET accept");
+    if(capsule->clientSock.socket == UTIL_ERRVAL) {
+        fprintf(stderr, "Trouble accepting new connection: SOCKET accept - %s\n", strerror(errno));
+        return;
+    }
+
     set_sock_timeout(capsule->clientSock.socket, FALLBACK_WAIT, FALLBACK_WAIT_U);
     inet_ntop(clientAddr.sin_family, &(clientAddr.sin_addr), capsule->clientSock.IPStr, INET_ADDRSTRLEN);
     printf("Client connected to server from [%s]\n", capsule->clientSock.IPStr);

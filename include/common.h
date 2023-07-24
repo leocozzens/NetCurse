@@ -2,7 +2,6 @@
 #define COMMON_H
 
 // POSIX headers
-#include <sys/socket.h> // TODO: Reorganize dependencies
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
@@ -17,6 +16,8 @@
 
 #define SADDR struct sockaddr
 #define SADDR_IN struct sockaddr_in
+
+#define UTIL_ERRVAL -1
 
 #define FILENAME(_Path) ((strrchr(_Path, '/') != NULL) ? strrchr(_Path, '/') + 1 : _Path)
 #define MEM_ERROR(_ObjPtr, _Warning) ((_ObjPtr) == NULL) ? \

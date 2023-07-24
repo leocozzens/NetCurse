@@ -1,5 +1,9 @@
+// POSIX headers
+#include <pthread.h>
+
 // Local headers
 #include <tasks.h>
+#include <handler.h>
 #include <unistd.h>
 
 // #define WORKER_COUNT 30

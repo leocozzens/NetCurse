@@ -1,12 +1,16 @@
+// POSIX headers
+#include <pthread.h>
+
+// Local headers
 #include <model.h>
 
 void init_queue(ActionQueue *userActions) {
     userActions->head = NULL;
     userActions->tail = NULL;
     userActions->queueLock = malloc(sizeof(pthread_mutex_t));
-    userActions->queueReady = malloc(sizeof(pthread_cond_t));
+    userActions->queueReady = malloc(sizeof(sem_t));
     pthread_mutex_init(userActions->queueLock, NULL);
-    pthread_cond_init(userActions->queueReady, NULL);
+    sem_init(userActions->queueReady, 0, 0);
 }
 
 void enqueue(ActionQueue *userActions, Action *newAction) {
@@ -18,8 +22,8 @@ void enqueue(ActionQueue *userActions, Action *newAction) {
     if(userActions->head == NULL) userActions->head = newAction; // Head is checked instead of tail because dequeue does not sync the tail if the head is null
     else userActions->tail->nextAction = newAction;
     userActions->tail = newAction;
-    pthread_cond_signal(userActions->queueReady);
     pthread_mutex_unlock(userActions->queueLock);
+    sem_post(userActions->queueReady);
 }
 
 void print_queue(ActionQueue *userActions) {
@@ -35,12 +39,8 @@ void print_queue(ActionQueue *userActions) {
 void dequeue(ActionQueue *userActions, Action **retAction) {
     MEM_ERROR(userActions, UNALLOC);
     MEM_ERROR(retAction, UNALLOC);
-    _Bool empty = 1;
+    if(userActions->head == NULL) sem_wait(userActions->queueReady);
     pthread_mutex_lock(userActions->queueLock);
-    do {
-        if(userActions->head == NULL) pthread_cond_wait(userActions->queueReady, userActions->queueLock);
-        else empty = 0;
-    } while(empty);
     *retAction= userActions->head;
 
     userActions->head = userActions->head->nextAction;

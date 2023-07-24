@@ -1,9 +1,34 @@
+// POSIX headers
+#include <sys/socket.h>
+
 // Local headers
 #include <handler.h>
 
 #define CHECK_FRAME(_FrameState, _SuccessCode) if((_FrameState) == (VERIFIED)) return _SuccessCode; \
                                                else if((_FrameState) == (BAD_FORMAT)) return ENDMSG_CODE; \
                                                else if((_FrameState) == (SOCKET_FAIL)) return TERMINATE_CODE
+
+typedef enum {
+    TERMINATE_CODE = -1,
+    ENDMSG_CODE,
+    KEEPALIVE_CODE,
+    USERDATA_CODE
+} MessageType;
+
+typedef enum {
+    SOCKET_FAIL = -1,
+    WRONG_HEADER,
+    BAD_FORMAT,
+    VERIFIED
+} FrameCode;
+
+typedef struct {
+    size_t *offSet;
+    size_t remainingBytes;
+    _Bool fragmented;
+    size_t fragPos;
+    char *suppBuff;
+} BuffData;
 
 static MessageType detect_msg_type(char **recvBuffer, BuffData *buffInfo, DataCapsule *capsule);
 static FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWidth, size_t dataSize, const char *header, const char *footer, DataCapsule *capsule);
@@ -61,11 +86,11 @@ static FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWi
 
     objectSize = frameWidth;
     if(buffInfo->remainingBytes < objectSize) {
-        if((strncmp(*dataPos, header, buffInfo->remainingBytes) != 0)) return WRONG_HEADER;
+        if((memcmp(*dataPos, header, buffInfo->remainingBytes) != 0)) return WRONG_HEADER;
         *dataPos = handle_fragments(*dataPos, buffInfo, objectSize, messageDiff, capsule);
         if(*dataPos == NULL) return SOCKET_FAIL;
     }
-    if((strncmp(*dataPos, header, frameWidth) != 0)) return WRONG_HEADER;
+    if((memcmp(*dataPos, header, frameWidth) != 0)) return WRONG_HEADER;
     buffInfo->remainingBytes -= objectSize;
     messageDiff += objectSize;
 
@@ -77,7 +102,7 @@ static FrameCode verify_frame(char **dataPos, BuffData *buffInfo, size_t frameWi
     buffInfo->remainingBytes -= objectSize;
     messageDiff += objectSize;
 
-    if(strncmp(*dataPos + objectSize, footer, frameWidth) != 0) return BAD_FORMAT;
+    if(memcmp(*dataPos + objectSize, footer, frameWidth) != 0) return BAD_FORMAT;
     *buffInfo->offSet = 0;
     return VERIFIED;
 }
@@ -88,7 +113,10 @@ static char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSi
     else buffInfo->fragPos = buffInfo->remainingBytes;
 
     buffInfo->suppBuff = malloc(objectSize + bufferDiff);
-    if(buffInfo->suppBuff == NULL) return NULL;
+    if(buffInfo->suppBuff == NULL) {
+        *buffInfo->offSet = 0;
+        return NULL;
+    }
 
     memcpy(buffInfo->suppBuff, dataPos, buffInfo->fragPos);
     if(buffInfo->fragmented) free(dataPos);
@@ -101,7 +129,10 @@ static char *handle_fragments(char *dataPos, BuffData *buffInfo, size_t objectSi
 
 static void make_action(const char *recvBuffer, size_t frameWidth, size_t dataSize, DataCapsule *capsule) {
     Action *actionBuffer = malloc(sizeof(Action));
-    MEM_ERROR(actionBuffer, ALLOC_ERR);
+    if(actionBuffer == NULL) {
+        fprintf(stderr, "Discarding message: %s\n", ALLOC_ERR);
+        return;
+    }
 
     memcpy(&actionBuffer->userPacket, recvBuffer + frameWidth, dataSize);
     actionBuffer->userPacket.msg[BUFF_SIZE - 1] = '\0'; // TODO: Unpack msg into string and null terminate there instead

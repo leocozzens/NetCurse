@@ -2,6 +2,10 @@
 #include <unistd.h>
 #include <errno.h>
 
+// POSIX headers
+#include <pthread.h>
+#include <sys/socket.h>
+
 // Local headers
 #include <input.h>
 #include <ctasks.h>
