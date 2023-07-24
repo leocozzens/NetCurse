@@ -1,7 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-// C standard libraries
+// POSIX headers
 #include <semaphore.h>
 
 // Local headers

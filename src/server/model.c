@@ -39,7 +39,7 @@ void print_queue(ActionQueue *userActions) {
 void dequeue(ActionQueue *userActions, Action **retAction) {
     MEM_ERROR(userActions, UNALLOC);
     MEM_ERROR(retAction, UNALLOC);
-    if(userActions->head == NULL) sem_wait(userActions->queueReady);
+    while(userActions->head == NULL) sem_wait(userActions->queueReady);
     pthread_mutex_lock(userActions->queueLock);
     *retAction= userActions->head;
 
