@@ -4,7 +4,6 @@
 // POSIX headers
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
 
 // C standard libraries
 #include <stdio.h>
